@@ -3,28 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Manual Codex APK</title>
+<title>BG Test App</title>
 <style>
-body{margin:0;background:#050507;color:white;font-family:system-ui;padding:24px}
-.card{background:#15151c;border:1px solid #333;border-radius:26px;padding:22px}
-h1{color:#65ff00;font-size:38px}
-button{background:#ffd36a;border:0;border-radius:18px;padding:16px 20px;font-weight:900;font-size:18px}
-.log{margin-top:16px;background:#000;border-radius:16px;padding:16px}
+body{margin:0;background:#050507;color:white;font-family:system-ui;padding:22px}.box{background:#15151c;border:1px solid #333;border-radius:26px;padding:22px;box-shadow:0 0 40px #000}h1{color:#65ff00;font-size:38px;margin:0 0 12px}.pill{display:inline-block;background:#65ff00;color:#000;border-radius:999px;padding:10px 16px;font-weight:900;margin:6px 0}.log{background:#050507;border:1px solid #333;border-radius:18px;padding:16px;margin-top:14px;white-space:pre-wrap}button{background:#ffd36a;border:0;border-radius:16px;padding:14px 18px;font-weight:900;font-size:16px;margin-top:14px}
 </style>
 </head>
 <body>
-<div class="card">
-<h1>🟢 GitHub APK Build</h1>
-<p>ถ้าเห็นหน้านี้ แปลว่า GitHub Actions build APK สำเร็จ</p>
-<button onclick="test()">ทดสอบปุ่ม</button>
-<div class="log" id="log">พร้อม</div>
+<div class="box">
+<h1>🟢 BG Test App</h1>
+<div class="pill">สร้างโดย Manual Codex Lite</div>
+<p>ถ้าเห็นหน้านี้ แปลว่า write_file + npm install + server.js ทำงานสำเร็จ</p>
+<button onclick="tick()">ทดสอบปุ่ม</button>
+<div class="log" id="log">สถานะ: พร้อมทดสอบ</div>
 </div>
 <script>
 let n=0;
-function test(){
-  n++;
-  document.getElementById('log').textContent='ปุ่มทำงานแล้ว ✅ ครั้งที่ '+n+' เวลา '+new Date().toLocaleString('th-TH');
-}
+function tick(){n++;document.getElementById('log').textContent='สถานะ: ปุ่มทำงานแล้ว ✅\nจำนวนครั้ง: '+n+'\nเวลา: '+new Date().toLocaleString('th-TH')}
 </script>
 </body>
 </html>
