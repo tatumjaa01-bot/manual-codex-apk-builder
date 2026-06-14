@@ -2,26 +2,99 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DEVIL Winner Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Manual Codex Lite</title>
 <style>
-body{margin:0;background:#050505;color:#fff;font-family:system-ui;padding:18px}
-h1{color:#ff7a00;font-size:30px;margin:10px 0}
-.card{background:#111;border:1px solid #333;border-radius:20px;padding:18px;margin:14px 0}
-a{display:block;text-decoration:none;text-align:center;background:#1d1d1d;color:#fff;border:1px solid #333;border-radius:18px;padding:22px;margin:14px 0;font-size:24px;font-weight:1000}
-a.main{background:linear-gradient(135deg,#ff7a00,#ffd08a);color:#1b0900;border:0}
-small{color:#aaa}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;
+  min-height:100vh;
+  background:#050505;
+  color:#fff;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+}
+.card{
+  width:min(560px,100%);
+  background:#15161d;
+  border:1px solid #30313a;
+  border-radius:30px;
+  padding:26px;
+  box-shadow:0 20px 70px #000;
+}
+h1{font-size:38px;line-height:1.08;margin:0 0 14px;color:#39ff00}
+p{font-size:18px;line-height:1.55;color:#ddd}
+button{
+  width:100%;
+  border:0;
+  border-radius:22px;
+  padding:17px 18px;
+  margin:8px 0;
+  font-size:20px;
+  font-weight:950;
+  background:#39ff00;
+  color:#050505;
+}
+.secondary{background:#2a2b33;color:#fff}
+.warn{background:#ffd76a;color:#000}
+.status{
+  margin-top:12px;
+  background:#050505;
+  border:1px solid #333;
+  border-radius:18px;
+  padding:14px;
+  white-space:pre-wrap;
+  font:14px ui-monospace,monospace;
+  color:#d8ffd8;
+}
+.small{font-size:14px;color:#aaa}
 </style>
 </head>
 <body>
-<h1>DEVIL Winner Studio</h1>
-<small>เหลือ 2 ฟังก์ชัน: บอร์ดประกาศรายชื่อ + ตัดรูปวงกลม</small>
-<div class="card">
-<a class="main" href="poster.html">บอร์ดประกาศรายชื่อ</a>
-<a href="crop.html">ตัดรูปวงกลม</a>
-</div>
-<script src="gemini.js"></script>
-<script src="manual_import_poster_fix.js"></script>
-<script src="codex_preview_tools.js"></script>
+  <div class="card">
+    <h1>Manual Codex Lite</h1>
+    <p>ตัวเปิด Codex server จาก Termux</p>
+
+    <button onclick="openCodex()">เปิด Codex Lite 🚀</button>
+    <button class="secondary" onclick="openWinnerPreview()">Preview Winner Studio</button>
+    <button class="warn" onclick="checkServer()">เช็ก Server</button>
+
+    <div id="status" class="status">สถานะ: พร้อมเปิด</div>
+
+    <p class="small">
+      ถ้าเปิดไม่ได้ ให้เปิด Termux แล้วรัน server ก่อน<br>
+      cd ~/manual_codex_lite && npm start
+    </p>
+  </div>
+
+<script>
+const BASE = 'http://127.0.0.1:8787';
+
+function setStatus(msg){ document.getElementById('status').textContent = msg; }
+
+function openCodex(){
+  location.href = BASE + '/';
+}
+
+function openWinnerPreview(){
+  location.href = BASE + '/preview/imported-com-devil-winnerstudio';
+}
+
+async function checkServer(){
+  setStatus('กำลังเช็ก server...');
+  try{
+    const r = await fetch(BASE + '/api/version', { cache:'no-store' });
+    setStatus('server online ✅\nstatus: ' + r.status + '\nกำลังเปิด Codex...');
+    setTimeout(openCodex, 500);
+  }catch(e){
+    setStatus('server offline ❌\n' + e.message + '\n\nเปิด Termux แล้วรัน:\ncd ~/manual_codex_lite && npm start');
+  }
+}
+
+setTimeout(checkServer, 600);
+</script>
 </body>
 </html>
