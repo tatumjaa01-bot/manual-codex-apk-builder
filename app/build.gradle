@@ -7,7 +7,7 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.manualcodex.imported_com_devil_winnerstudio"
+        applicationId "com.manualcodex.lite"
         minSdk 23
         targetSdk 35
         versionCode 1
@@ -17,5 +17,4 @@ android {
 
 
 dependencies {
-    implementation "com.google.mlkit:text-recognition:16.0.1"
 }
