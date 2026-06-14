@@ -1,0 +1,40 @@
+
+<!-- PATCH SEND BUTTON -->
+<button id="devilSendBtn" style="position:fixed;right:12px;bottom:12px;z-index:9999;background:#15f28c;color:#001b10;border:0;padding:14px 18px;border-radius:14px;font-weight:900">
+ส่งเข้าบอร์ด
+</button>
+
+<script>
+async function DEVIL_SEND_TO_BOARD(){
+
+try{
+
+const cvs = document.querySelector('canvas');
+if(!cvs){
+ alert('ไม่พบ canvas');
+ return;
+}
+
+const data = cvs.toDataURL('image/png');
+
+let arr = [];
+
+try{
+ arr = JSON.parse(localStorage.getItem('DEVIL_AVATARS') || '[]');
+}catch(e){}
+
+arr.push(data);
+
+localStorage.setItem('DEVIL_AVATARS', JSON.stringify(arr));
+localStorage.setItem('DEVIL_SEND_AVATAR', Date.now());
+
+alert('ส่งรูปเข้าบอร์ดแล้ว');
+
+}catch(err){
+ alert(err.message);
+}
+
+}
+
+document.getElementById('devilSendBtn').onclick = DEVIL_SEND_TO_BOARD;
+</script>
