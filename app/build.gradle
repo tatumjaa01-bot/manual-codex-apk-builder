@@ -7,7 +7,7 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.manualcodex.my_test_app"
+        applicationId "com.manualcodex.imported_com_devil_winnerstudio"
         minSdk 23
         targetSdk 35
         versionCode 1
