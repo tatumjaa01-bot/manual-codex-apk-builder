@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
@@ -27,12 +28,14 @@ import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import com.googlecode.tesseract.android.TessBaseAPI;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 public class MainActivity extends Activity {
@@ -124,6 +127,50 @@ public class MainActivity extends Activity {
         });
     }
 
+    private String prepareTessData() throws Exception {
+        File base = new File(getFilesDir(), "tesseract");
+        File tess = new File(base, "tessdata");
+        if (!tess.exists()) tess.mkdirs();
+
+        File tha = new File(tess, "tha.traineddata");
+        if (!tha.exists() || tha.length() < 1000000) {
+            AssetManager am = getAssets();
+            InputStream in = am.open("www/tessdata/tha.traineddata");
+            FileOutputStream out = new FileOutputStream(tha);
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            out.flush();
+            out.close();
+            in.close();
+        }
+        return base.getAbsolutePath();
+    }
+
+    private String runThaiTesseract(Bitmap bitmap) {
+        TessBaseAPI tess = null;
+        try {
+            String dataPath = prepareTessData();
+
+            tess = new TessBaseAPI();
+            boolean ok = tess.init(dataPath, "tha");
+            if (!ok) return "";
+
+            tess.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST,
+                    "กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮะาิีึืุูเแโใไำ่้๊๋์ๆฯ0123456789xX-* .");
+
+            tess.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
+            tess.setImage(bitmap);
+
+            String text = tess.getUTF8Text();
+            return text == null ? "" : text.trim();
+        } catch (Exception e) {
+            return "";
+        } finally {
+            try { if (tess != null) tess.end(); } catch (Exception ignored) {}
+        }
+    }
+
     public class AndroidBridge {
         @JavascriptInterface
         public String saveBase64Image(String dataUrl, String fileName) {
@@ -187,6 +234,8 @@ public class MainActivity extends Activity {
 
                     if (bitmap == null) throw new Exception("decode bitmap failed");
 
+                    final String tessText = runThaiTesseract(bitmap);
+
                     InputImage image = InputImage.fromBitmap(bitmap, 0);
                     TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
@@ -213,18 +262,24 @@ public class MainActivity extends Activity {
                                         }
                                     }
 
+                                    String ml = text.getText() == null ? "" : text.getText();
+                                    String both = (ml + "\n" + tessText).trim();
+
                                     out.put("ok", true);
-                                    out.put("engine", "mlkit");
-                                    out.put("text", text.getText());
-                                    out.put("value", text.getText());
-                                    out.put("mlkitText", text.getText());
+                                    out.put("engine", "mlkit+tesseract-tha");
+                                    out.put("text", both);
+                                    out.put("value", both);
+                                    out.put("mlkitText", ml);
+                                    out.put("tesseractText", tessText);
+                                    out.put("paddleText", "");
                                     out.put("lines", lines);
                                 } catch (Exception e) {
                                     try {
                                         out.put("ok", false);
-                                        out.put("engine", "mlkit");
+                                        out.put("engine", "mlkit+tesseract-tha");
                                         out.put("error", String.valueOf(e.getMessage()));
-                                        out.put("text", "");
+                                        out.put("text", tessText);
+                                        out.put("tesseractText", tessText);
                                         out.put("lines", new JSONArray());
                                     } catch (Exception ignored) {}
                                 }
@@ -234,10 +289,13 @@ public class MainActivity extends Activity {
                             .addOnFailureListener(e -> {
                                 JSONObject out = new JSONObject();
                                 try {
-                                    out.put("ok", false);
-                                    out.put("engine", "mlkit_error");
-                                    out.put("error", String.valueOf(e.getMessage()));
-                                    out.put("text", "");
+                                    out.put("ok", true);
+                                    out.put("engine", "tesseract-tha-only");
+                                    out.put("text", tessText);
+                                    out.put("value", tessText);
+                                    out.put("mlkitText", "");
+                                    out.put("tesseractText", tessText);
+                                    out.put("paddleText", "");
                                     out.put("lines", new JSONArray());
                                 } catch (Exception ignored) {}
                                 resolveOcr(cb, out);
@@ -250,6 +308,9 @@ public class MainActivity extends Activity {
                         out.put("engine", "native_error");
                         out.put("error", String.valueOf(e.getMessage()));
                         out.put("text", "");
+                        out.put("mlkitText", "");
+                        out.put("tesseractText", "");
+                        out.put("paddleText", "");
                         out.put("lines", new JSONArray());
                     } catch (Exception ignored) {}
                     resolveOcr(cb, out);
