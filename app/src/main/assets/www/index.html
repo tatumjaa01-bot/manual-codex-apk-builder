@@ -2,24 +2,60 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DEVIL Winner Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Manual Codex Lite</title>
 <style>
-body{margin:0;background:#050505;color:#fff;font-family:system-ui;padding:18px}
-h1{color:#ff7a00;font-size:30px;margin:10px 0}
-.card{background:#111;border:1px solid #333;border-radius:20px;padding:18px;margin:14px 0}
-a{display:block;text-decoration:none;text-align:center;background:#1d1d1d;color:#fff;border:1px solid #333;border-radius:18px;padding:22px;margin:14px 0;font-size:24px;font-weight:1000}
-a.main{background:linear-gradient(135deg,#ff7a00,#ffd08a);color:#1b0900;border:0}
-small{color:#aaa}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  background:#050505;
+  color:#fff;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+}
+.card{
+  width:min(520px,100%);
+  background:#15161d;
+  border:1px solid #30313a;
+  border-radius:28px;
+  padding:26px;
+  text-align:center;
+}
+h1{font-size:34px;margin:0 0 12px;color:#55ff00}
+p{font-size:18px;line-height:1.5;opacity:.85}
+button{
+  border:0;
+  border-radius:20px;
+  padding:16px 22px;
+  font-size:20px;
+  font-weight:900;
+  margin-top:12px;
+  background:#55ff00;
+  color:#050505;
+}
+.small{font-size:14px;opacity:.65;margin-top:16px}
 </style>
 </head>
 <body>
-<h1>DEVIL Winner Studio</h1>
-<small>เหลือ 2 ฟังก์ชัน: บอร์ดประกาศรายชื่อ + ตัดรูปวงกลม</small>
 <div class="card">
-<a class="main" href="poster.html">บอร์ดประกาศรายชื่อ</a>
-<a href="crop.html">ตัดรูปวงกลม</a>
+  <h1>Manual Codex Lite</h1>
+  <p>เปิด Codex Lite แบบ APK</p>
+  <button onclick="openLite()">Open Codex Lite 🚀</button>
+  <p class="small">
+    ต้องเปิด server ใน Termux ไว้ก่อน:<br>
+    cd ~/manual_codex_lite && npm start
+  </p>
 </div>
-<script src="gemini.js"></script>
+
+<script>
+function openLite(){
+  location.href = 'http://127.0.0.1:8787/';
+}
+setTimeout(openLite, 800);
+</script>
 </body>
 </html>
