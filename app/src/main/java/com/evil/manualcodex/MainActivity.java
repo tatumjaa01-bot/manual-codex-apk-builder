@@ -25,13 +25,15 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         web = new WebView(this);
-
         WebSettings s = web.getSettings();
+
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setAllowFileAccess(true);
         s.setAllowContentAccess(true);
+        s.setAllowFileAccessFromFileURLs(true);
+        s.setAllowUniversalAccessFromFileURLs(true);
         s.setMediaPlaybackRequiresUserGesture(false);
 
         if (Build.VERSION.SDK_INT >= 21) {
@@ -65,18 +67,12 @@ public class MainActivity extends Activity {
                     Toast.makeText(MainActivity.this, "ไม่พบแอพสำหรับเลือกรูป", Toast.LENGTH_SHORT).show();
                     return false;
                 }
-
                 return true;
             }
         });
 
         setContentView(web);
-
-        if (savedInstanceState != null) {
-            web.restoreState(savedInstanceState);
-        } else {
-            web.loadUrl("file:///android_asset/www/index.html");
-        }
+        web.loadUrl("file:///android_asset/www/index.html");
     }
 
     @Override
@@ -88,7 +84,6 @@ public class MainActivity extends Activity {
             }
 
             Uri[] results = null;
-
             if (resultCode == RESULT_OK && data != null) {
                 if (data.getClipData() != null) {
                     int count = data.getClipData().getItemCount();
