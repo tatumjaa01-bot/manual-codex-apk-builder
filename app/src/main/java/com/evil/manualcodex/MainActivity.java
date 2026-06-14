@@ -31,7 +31,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         requestRuntimePermissions();
-        startKeepAliveService();
 
         web = new WebView(this);
 
@@ -75,6 +74,7 @@ public class MainActivity extends Activity {
                     Toast.makeText(MainActivity.this, "ไม่พบแอพสำหรับเลือกรูป", Toast.LENGTH_SHORT).show();
                     return false;
                 }
+
                 return true;
             }
 
@@ -102,19 +102,8 @@ public class MainActivity extends Activity {
 
         setContentView(web);
 
-        if (savedInstanceState != null) {
-            web.restoreState(savedInstanceState);
-        } else {
-            web.loadUrl(HOME_URL);
-        }
-    }
-
-    private void startKeepAliveService() {
-        try {
-            Intent intent = new Intent(this, KeepAliveService.class);
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent);
-            else startService(intent);
-        } catch (Exception ignored) {}
+        if (savedInstanceState != null) web.restoreState(savedInstanceState);
+        else web.loadUrl(HOME_URL);
     }
 
     private void requestRuntimePermissions() {
@@ -158,37 +147,8 @@ public class MainActivity extends Activity {
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        if (web != null) web.saveState(outState);
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (web != null) web.resumeTimers();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (web != null) web.resumeTimers();
-        startKeepAliveService();
-    }
-
-    @Override
     public void onBackPressed() {
         if (web != null && web.canGoBack()) web.goBack();
         else moveTaskToBack(true);
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (isFinishing() && web != null) {
-            web.stopLoading();
-            web.destroy();
-            web = null;
-        }
-        super.onDestroy();
     }
 }
