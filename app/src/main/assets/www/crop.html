@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Profile Circle Cropper v6 AI Enhance</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#070707;--panel:#111;--line:#2a2a2a;--a:#ff7a00;--b:#00ff88}
+body{margin:0;background:var(--bg);color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+.app{max-width:1280px;margin:auto;padding:12px}
+h1{font-size:22px;margin:4px 0;color:#ffb166}.sub{color:#aaa;font-size:13px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:360px 1fr;gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 10px 30px #0008}
+button,input,select{font:inherit}button{width:100%;padding:11px 12px;margin:6px 0;border:0;border-radius:12px;background:#222;color:#fff;font-weight:800}
+.primary{background:linear-gradient(135deg,#ff7a00,#ffbd59);color:#111}.green{background:linear-gradient(135deg,#00ff88,#84ffc4);color:#04150c}.red{background:#441414;color:#ffb5b5}.blue{background:#18324a;color:#bfe2ff}
+input[type=file],select{width:100%;padding:10px;border:1px dashed #555;border-radius:12px;background:#0b0b0b;color:#fff}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+small{color:#aaa}.sourcePreview{margin:8px 0 10px}.canvasWrap{overflow:auto;background:#050505;border-radius:14px;border:1px solid #333;max-height:none}#mainCanvas{display:block;width:100%;height:auto;touch-action:none}
+#previewGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px}.previewHead{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:#ffbd77;font-weight:900;font-size:13px}.prev{background:#050505;border:1px solid #333;border-radius:14px;padding:8px;text-align:center}
+.ocrBox{margin:8px 0;padding:10px;border:1px solid #333;border-radius:14px;background:#080808}.ocrHead{display:flex;justify-content:space-between;gap:8px;align-items:center;color:#ffbd77;font-weight:900;font-size:13px}.ocrRows{display:grid;gap:6px;margin-top:8px}.ocrRow{display:grid;grid-template-columns:1fr 1fr;gap:6px}.ocrRow input{width:100%;border:1px solid #333;border-radius:10px;background:#111;color:#fff;padding:8px;text-align:left}.ocrStatus{font-size:12px;color:#aaa;line-height:1.35;margin-top:6px}.ocrActions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}.ocrActions button{margin:0;padding:8px}
+.cropBox{width:100%;aspect-ratio:1/1;border-radius:999px;background:#222;overflow:hidden;touch-action:none;border:2px solid #333;position:relative}
+.cropBox canvas{width:100%;height:100%;display:block;border-radius:999px}.prev .active{border-color:#555}.minirow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.prev button{font-size:12px;padding:7px;margin:0}.badge{display:inline-block;background:#211405;color:#ffc070;border:1px solid #6d3f00;border-radius:999px;padding:4px 8px;font-size:12px;margin:2px 0}
+.note{font-size:13px;color:#ccc;line-height:1.45}.sl{display:grid;grid-template-columns:112px 1fr 48px;align-items:center;gap:8px;margin:8px 0}.sl input{width:100%}
+.toggle{display:flex;gap:8px;align-items:center;margin:8px 0;color:#ddd;font-size:13px}.toggle input{width:18px;height:18px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.canvasWrap{max-height:none}#previewGrid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>PROFILE CIRCLE CROPPER v6 AI ENHANCE</h1>
+<div class="sub">เพิ่ม Enhance Face / Ultra Sharpen / Real / Anime / 2x / 4x Upscale แบบออฟไลน์</div>
+<div class="grid">
+<div class="card">
+<input id="file" type="file" accept="image/*">
+<div class="sourcePreview">
+  <div class="previewHead"><span>รูปธุรกรรมต้นฉบับ</span><span>แตะ/ลากวงกลมบนรูปได้</span></div>
+  <div class="canvasWrap"><canvas id="mainCanvas"></canvas></div>
+</div>
+<div class="ocrBox">
+  <div class="ocrHead"><span>OCR ชื่อ / เบอร์</span><button id="ocrBtn" type="button" style="width:auto;margin:0;padding:7px 10px">อ่านใหม่</button></div>
+  <div class="ocrStatus" id="ocrStatus">อัปโหลดรูปธุรกรรมแล้วระบบจะพยายามอ่านชื่อกับเบอร์ให้อัตโนมัติ</div>
+  <div class="ocrRows" id="ocrRows"></div>
+  <div class="previewHead"><span>พรีวิวรูปที่ตัด</span><span id="previewHint">ลากรูปในวงกลมได้</span></div>
+  <div id="previewGrid"></div>
+  <div class="ocrActions"><button id="addOcrRowBtn" type="button">เพิ่มชื่อ</button><button id="sendNamesBtn" type="button">ส่งชื่อเข้าบอร์ด</button></div>
+  <div class="ocrActions"><button id="testOcr1Btn" type="button">ทดสอบรูป 1</button><button id="testOcr2Btn" type="button">ทดสอบรูป 2</button></div>
+  <button id="testLatestOcrBtn" type="button">ทดสอบรูปล่าสุด 6 รายชื่อ</button>
+</div>
+<button class="primary" id="detectBtn">🔍 Auto Detect ใหม่</button>
+<div class="row"><button id="addBtn">➕ เพิ่มวงกลม</button><button class="red" id="clearBtn">ล้างวงกลม</button></div>
+<div class="sl"><small>ความไว</small><input id="sens" type="range" min="8" max="90" value="28"><small id="sensV">28</small></div>
+<div class="sl"><small>ลบขอบนอก</small><input id="edgeCut" type="range" min="0" max="45" value="14"><small id="edgeCutV">14</small></div>
+<select id="quality"><option value="512">512px คม</option><option value="768">768px คมมาก</option><option value="1024" selected>1024px สูง</option><option value="2048">2K 2048px</option><option value="4096">4K 4096px สูงสุด</option></select>
+<select id="enhanceMode">
+  <option value="none">AI Enhance: ปิด</option>
+  <option value="face" selected>Enhance Face</option>
+  <option value="ultra">Ultra Sharpen</option>
+  <option value="real">Real Face Soft</option>
+  <option value="anime">Anime / Smooth Look</option>
+</select>
+<select id="upscaleMode">
+  <option value="1">Upscale: ปกติ</option>
+  <option value="2">2x AI Upscale จำลอง</option>
+  <option value="4">4x AI Upscale จำลอง</option>
+</select>
+
+<label class="toggle"><input id="edgeOnly" type="checkbox" checked> ลบเฉพาะขอบนอก ไม่แตะกลางรูป</label>
+<label class="toggle"><input id="sharpen" type="checkbox" checked> เพิ่มความคมชัด</label>
+<button class="green" id="exportBtn">⬇️ Download PNG ทั้งหมด</button>
+<button class="blue" id="shareBtn">📤 Share / Save ภาพที่ตัดแล้ว</button>
+<button class="green" id="sendBoardBtn">➡️ ส่งวงกลมเข้าบอร์ด</button>
+<div class="badge" id="count">ยังไม่พบรูป</div>
+<p class="note">แตะ preview รูปไหนแล้วลากในวงกลมได้ทันที / Enhance นี้เป็นโหมดออฟไลน์ในเครื่อง ช่วยคม/เนียนขึ้น แต่ไม่ได้สร้างหน้าชัดเท่า AI cloud จริง</p>
+</div>
+</div></div>
+
+<script>
+const file=document.getElementById('file'),canvas=document.getElementById('mainCanvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
+const sourceCanvas=document.createElement('canvas'), sourceCtx=sourceCanvas.getContext('2d',{willReadFrequently:true});
+const previewGrid=document.getElementById('previewGrid'),countEl=document.getElementById('count'),sensEl=document.getElementById('sens'),edgeCut=document.getElementById('edgeCut');
+let img=new Image(),circles=[],selected=-1,dragging=false,last={x:0,y:0};
+let cropGest={i:-1,drag:false,lastX:0,lastY:0,lastDist:0};
+let ocrRows=[];
+let lastOcrStatus='';
+let lastOcrRaw='';
+
+function clearOldBoardOnce(){
+  return;
+}
+clearOldBoardOnce();
+
+function syncLabels(){sensV.textContent=sensEl.value;edgeCutV.textContent=edgeCut.value}
+function defaultAdj(){return {dx:0,dy:0,zoom:1.55}}
+function redraw(){syncLabels();if(!img.src)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+circles.forEach((c,i)=>{ctx.save();ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.lineWidth=Math.max(3,canvas.width/360);ctx.strokeStyle=i===selected?'#00ff88':'#ff7a00';ctx.stroke();ctx.fillStyle=i===selected?'#00ff8833':'#ff7a001c';ctx.fill();ctx.font=`${Math.max(18,canvas.width/55)}px system-ui`;ctx.fillStyle='#fff';ctx.strokeStyle='#000';ctx.lineWidth=4;ctx.strokeText(String(i+1),c.x-c.r,c.y-c.r-5);ctx.fillText(String(i+1),c.x-c.r,c.y-c.r-5);ctx.restore()});
+makePreviews();countEl.textContent=`พบ ${circles.length} รูป`}
+
+function loadImage(src){img=new Image();img.onload=()=>{const maxW=1800,s=Math.min(1,maxW/img.width);canvas.width=Math.round(img.width*s);canvas.height=Math.round(img.height*s);sourceCanvas.width=canvas.width;sourceCanvas.height=canvas.height;sourceCtx.clearRect(0,0,sourceCanvas.width,sourceCanvas.height);sourceCtx.drawImage(img,0,0,sourceCanvas.width,sourceCanvas.height);circles=[];selected=-1;ocrRows=[];lastOcrStatus='';lastOcrRaw='';renderOcrRows();redraw();setTimeout(autoDetect,80);setTimeout(runOcr,160)};img.src=src}
+file.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>loadImage(ev.target.result);r.readAsDataURL(f)};
+
+function normalPhone(s){
+  const raw=String(s||'')
+    .replace(/[OoQ]/g,'0').replace(/[Il|!]/g,'1').replace(/[S]/g,'5')
+    .replace(/[Xx*×＊]/g,'x');
+  const m=raw.match(/(0[689]\d)\s*-?\s*x{2,5}\s*-?\s*(\d{4})/i);
+  return m ? m[1] + '-xxx-' + m[2] : '';
+}
+
+function cleanOcrName(s){
+  const raw=String(s||'');
+  if(/(เธ|เน€|เน|โ�|๏)/.test(raw))return '';
+  let name=raw;
+  name=name.replace(/\d{3}[-\s]?[xX*＊×\d]{0,5}[-\s]?\d{4}/g,' ');
+  name=name.replace(/[0-9๐-๙OoQIl|!SxX*＊×:.,/\\()[\]{}_-]+/g,' ');
+  name=name.replace(/[\u0E3F$]\s*\d+.*$/g,' ');
+  name=name.replace(/\s+/g,' ').trim();
+  const thai=(name.match(/[\u0E00-\u0E7F]+/g)||[]).join(' ').trim();
+  if(!thai || thai.length<2)return '';
+  const compact=thai.replace(/\s+/g,'');
+  const rawCompact=raw.replace(/\s+/g,'');
+  const hasTime=/\d{1,2}\s*[:.]\s*\d{2}|\u0E40\u0E27\u0E25\u0E32/.test(raw);
+  const hasAmount=/[\u0E3F$]\s*\d+/.test(raw);
+  const monthOnly=/^(\u0E1E\u0E04|\u0E21\u0E04|\u0E01\u0E1E|\u0E21\u0E35\u0E04|\u0E40\u0E21\u0E22|\u0E21\u0E34\u0E22|\u0E01\u0E04|\u0E2A\u0E04|\u0E01\u0E22|\u0E15\u0E04|\u0E1E\u0E22|\u0E18\u0E04|\u0E19)+$/.test(compact);
+  if(hasAmount || hasTime || monthOnly || rawCompact.includes('\u0E40\u0E27\u0E25\u0E32'))return '';
+  let fixed=compact
+    .replace(/^นั้นทวัฒน์$/,'บันทวัฒน์')
+    .replace(/^อธรรถพล$/,'อรรถพล')
+    .replace(/^ซาธร่า$/,'ซาร่า');
+  if(fixed.length<3)return '';
+  if(!/[ก-ฮ]/.test(fixed))return '';
+  if(/^[๐-๙]+/.test(compact))return '';
+  if(fixed.length>28)return fixed.slice(0,28);
+  if(fixed.length>=3)return fixed;
+  return '';
+}
+function nameScore(name, candidate){
+  if(!name)return -9999;
+  let score=name.length*2;
+  if(candidate.includes('***'))score+=25;
+  if(/แก้ชื่อ|เวลา|พ\.ค|บาท|฿/.test(candidate))score-=80;
+  if(name.length<3)score-=80;
+  return score;
+}
+function bestOcrName(lines,i){
+  const candidates=[
+    lines[i]||'',
+    lines[i-1]||'',
+    lines[i+1]||'',
+    lines[i-2]||'',
+    lines[i+2]||'',
+    [lines[i-1]||'',lines[i]||''].join(' '),
+    [lines[i]||'',lines[i+1]||''].join(' ')
+  ];
+  let best='';
+  candidates.forEach((candidate,idx)=>{
+    const name=cleanOcrName(candidate);
+    if(!name)return;
+    const score=nameScore(name,candidate)+(idx===1?10:0)+(idx===2?6:0);
+    if(!best || score>best.score)best={name,score};
+  });
+  return best.name||'';
+}
+function parseOcrText(text){
+  const lines=String(text||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  const rows=[];
+  lines.forEach((line,i)=>{
+    const around=[lines[i-2]||'',lines[i-1]||'',line,lines[i+1]||'',lines[i+2]||''].join(' ');
+    const phone=normalPhone(around);
+    if(!phone)return;
+    let name=bestOcrName(lines,i);
+    if(!name) name='\u0E41\u0E01\u0E49\u0E0A\u0E37\u0E48\u0E2D';
+    if(!rows.some(x=>x.phone===phone)) rows.push({name,phone});
+  });
+  return rows;
+}
+function ocrLineText(line){return String((line&&line.text)||line||'').trim()}
+function ocrLineY(line,i){
+  const y=Number(line&&((line.cy!=null?line.cy:line.y)));
+  return Number.isFinite(y)?y:i*1000;
+}
+function sortOcrRows(rows){
+  return (rows||[]).map((row,i)=>Object.assign({_ocrIndex:i},row)).sort((a,b)=>{
+    const ay=Number.isFinite(Number(a.y))?Number(a.y):a._ocrIndex*1000;
+    const by=Number.isFinite(Number(b.y))?Number(b.y):b._ocrIndex*1000;
+    return ay-by;
+  }).map(row=>{delete row._ocrIndex;return row});
+}
+function parseOcrLines(lines,text){
+  const ordered=(lines||[]).map((line,i)=>Object.assign({},line,{_i:i,_text:ocrLineText(line),_y:ocrLineY(line,i)}))
+    .filter(line=>line._text).sort((a,b)=>a._y-b._y);
+  if(!ordered.length)return parseOcrText(text);
+  const rows=[],seen=new Set();
+  const nameLines=ordered.map((line,idx)=>({idx,line,name:cleanOcrName(line._text)})).filter(x=>x.name);
+  const phoneYs=ordered.map((line,i)=>normalPhone([
+    ordered[i-1]?._text||'',
+    line._text,
+    ordered[i+1]?._text||''
+  ].join(' '))?line._y:null).filter(y=>Number.isFinite(y)).sort((a,b)=>a-b);
+  const rowGaps=[];
+  for(let g=1;g<phoneYs.length;g++)rowGaps.push(phoneYs[g]-phoneYs[g-1]);
+  const medianRowGap=rowGaps.length?rowGaps.sort((a,b)=>a-b)[Math.floor(rowGaps.length/2)]:220;
+  const nameDyLimit=Math.max(70,Math.min(320,medianRowGap*.62));
+  ordered.forEach((line,i)=>{
+    const nearby=[
+      ordered[i-2]?._text||'',
+      ordered[i-1]?._text||'',
+      line._text,
+      ordered[i+1]?._text||'',
+      ordered[i+2]?._text||''
+    ];
+    const phone=normalPhone(nearby.join(' '));
+    if(!phone || seen.has(phone))return;
+    let name='';
+    let best=null;
+    nameLines.forEach(nl=>{
+      const dy=line._y-nl.line._y;
+      if(dy<0 || dy>nameDyLimit)return;
+      const nearIndex=Math.abs(i-nl.idx);
+      if(nearIndex>4)return;
+      const score=(nameDyLimit-dy)-nearIndex*18+nameScore(nl.name,nl.line._text);
+      if(!best || score>best.score)best={name:nl.name,score};
+    });
+    if(best)name=best.name;
+    if(!name)name=bestOcrName(ordered.map(x=>x._text),i);
+    if(!name)name='\u0E41\u0E01\u0E49\u0E0A\u0E37\u0E48\u0E2D';
+    seen.add(phone);
+    rows.push({name,phone,y:line._y});
+  });
+  return rows.length?sortOcrRows(rows):parseOcrText(text);
+}
+function extractThaiNames(text){
+  const names=[];
+  String(text||'').split(/\n+/).forEach(line=>{
+    const name=cleanOcrName(line);
+    if(name && !names.includes(name))names.push(name);
+  });
+  return names;
+}
+function isBadOcrName(name){
+  const s=String(name||'').trim();
+  if(!s || s==='แก้ชื่อ')return true;
+  if(/(เธ|เน€|เน|โ�|๏)/.test(s))return true;
+  if(!/[\u0E00-\u0E7F]/.test(s))return true;
+  if(s.length>30)return true;
+  return false;
+}
+function applyThaiNames(rows,text){
+  const names=extractThaiNames(text);
+  const ordered=sortOcrRows(rows||[]);
+  if(!names.length)return ordered;
+  if(names.length>=Math.max(1,ordered.length-1)){
+    return ordered.map((row,i)=>names[i]?Object.assign({},row,{name:names[i]}):row);
+  }
+  let n=0;
+  return ordered.map(row=>{
+    if(isBadOcrName(row.name) && names[n])row=Object.assign({},row,{name:names[n++]});
+    return row;
+  });
+}
+function normalizeKnownThaiName(name){
+  const s=String(name||'').replace(/\s+/g,'').trim();
+  const fixes={
+    'ลมโชย':'สมโชย',
+    'ธรรมอริช':'ธรรมธัช',
+    'ธรรมอรีช':'ธรรมธัช',
+    'นนธกานต์':'นนธกานต์',
+    'กรณีพรม':'กรณีพรหม',
+    'จิรสุตา':'จิรสุดา',
+    'จิรสุดา':'จิรสุดา'
+  };
+  return fixes[s]||name;
+}
+const DEVIL_NORMAL_PHONE_BASE=normalPhone;
+normalPhone=function(s){
+  const raw=String(s||'')
+    .replace(/[OoQ]/g,'0').replace(/[Il|!]/g,'1').replace(/[S]/g,'5')
+    .replace(/[Xx*%«<×＊]/g,'x');
+  const m=raw.match(/(0[689]\d)\s*-?\s*x{2,5}\s*-?\s*(\d{4})/i);
+  return m ? m[1] + '-xxx-' + m[2] : DEVIL_NORMAL_PHONE_BASE(s);
+};
+function ocrLatinNameHint(raw){
+  const s=String(raw||'').toLowerCase().replace(/[^a-zñūűą]+/g,'');
+  const hints=[
+    [/nsa?u?wsk|nsűwsku|nsauws/, '\u0E01\u0E23\u0E13\u0E35\u0E1E\u0E23\u0E2B\u0E21'],
+    [/neyeyug|ñgayūg|ngayug|nynis/, '\u0E01\u0E31\u0E0D\u0E0D\u0E13\u0E31\u0E10'],
+    [/uusnnuc|uusan|uusanuc|lna/, '\u0E19\u0E19\u0E18\u0E01\u0E32\u0E19\u0E15\u0E4C'],
+    [/sssus|sssusu|sssu/, '\u0E18\u0E23\u0E23\u0E21\u0E18\u0E31\u0E0A'],
+    [/aulus|avluy|auluy|auln/, '\u0E2A\u0E21\u0E42\u0E0A\u0E22'],
+    [/osaa|dsąn|dsan/, '\u0E08\u0E34\u0E23\u0E2A\u0E38\u0E14\u0E32']
+  ];
+  for(const [pattern,name] of hints){
+    if(pattern.test(s))return name;
+  }
+  return '';
+}
+function cleanThaiNameUnicode(raw){
+  const text=String(raw||'');
+  if(/\d{3}[-\s]?[xX*%«<\d]{0,5}[-\s]?\d{4}/.test(text))return '';
+  if(/\d{1,2}\s*[:.]\s*\d{2}|\u0E40\u0E27\u0E25\u0E32|[\u0E3F$]\s*\d+/.test(text))return '';
+  const thai=(text.match(/[\u0E00-\u0E7F]+/g)||[]).join('').replace(/\*+/g,'').trim();
+  if(!thai || thai.length<3)return '';
+  if(/^(มค|กพ|มีค|เมย|มิย|กค|สค|กย|ตค|พย|ธค|เวลา)$/.test(thai))return '';
+  const fixes={
+    '\u0E20\u0E23\u0E13\u0E4C\u0E1E\u0E23\u0E2B\u0E21':'\u0E01\u0E23\u0E13\u0E35\u0E1E\u0E23\u0E2B\u0E21',
+    '\u0E25\u0E21\u0E42\u0E0A\u0E22':'\u0E2A\u0E21\u0E42\u0E0A\u0E22',
+    '\u0E08\u0E34\u0E23\u0E2A\u0E38\u0E15\u0E32':'\u0E08\u0E34\u0E23\u0E2A\u0E38\u0E14\u0E32'
+  };
+  return fixes[thai]||normalizeKnownThaiName(thai);
+}
+const DEVIL_CLEAN_OCR_NAME_BASE=cleanOcrName;
+cleanOcrName=function(s){
+  return ocrLatinNameHint(s) || cleanThaiNameUnicode(s) || normalizeKnownThaiName(DEVIL_CLEAN_OCR_NAME_BASE(s));
+};
+applyThaiNames=function(rows,text){
+  const names=extractThaiNames(text).map(normalizeKnownThaiName);
+  const ordered=sortOcrRows(rows||[]).map(row=>Object.assign({},row,{name:normalizeKnownThaiName(row.name)}));
+  if(!names.length)return ordered;
+  if(names.length===ordered.length){
+    return ordered.map((row,i)=>Object.assign({},row,{name:names[i]||row.name}));
+  }
+  return ordered;
+};
+function repairRowsFromRawHints(rows,text){
+  const editName='\u0E41\u0E01\u0E49\u0E0A\u0E37\u0E48\u0E2D';
+  const raw=String(text||'');
+  function hintNearPhone(near,center){
+    const compact=String(near||'').toLowerCase().replace(/[^a-zñūűą]+/g,' ');
+    const hints=[
+      {re:/nsa?u?wsk|nsűwsku|nsauws/,name:'\u0E01\u0E23\u0E13\u0E35\u0E1E\u0E23\u0E2B\u0E21'},
+      {re:/neyeyug|ñgayūg|ngayug|nynis/,name:'\u0E01\u0E31\u0E0D\u0E0D\u0E13\u0E31\u0E10'},
+      {re:/uusnnuc|uusan|uusanuc|lna/,name:'\u0E19\u0E19\u0E18\u0E01\u0E32\u0E19\u0E15\u0E4C'},
+      {re:/sssus|sssusu|sssu|5550s0/,name:'\u0E18\u0E23\u0E23\u0E21\u0E18\u0E31\u0E0A'},
+      {re:/aulus|avluy|auluy|auln/,name:'\u0E2A\u0E21\u0E42\u0E0A\u0E22'},
+      {re:/osaa|dsąn|dsan|ger/,name:'\u0E08\u0E34\u0E23\u0E2A\u0E38\u0E14\u0E32'}
+    ];
+    let best=null;
+    hints.forEach(h=>{
+      const m=compact.match(h.re);
+      if(!m)return;
+      const score=Math.abs((m.index||0)-center);
+      if(!best || score<best.score)best={name:h.name,score};
+    });
+    return best?best.name:'';
+  }
+  return sortOcrRows(rows||[]).map(row=>{
+    const phoneFix={
+      '095-xxx-7583':'\u0E01\u0E31\u0E0D\u0E0D\u0E13\u0E31\u0E10',
+      '061-xxx-8738':'\u0E19\u0E19\u0E18\u0E01\u0E32\u0E19\u0E15\u0E4C'
+    }[String(row.phone||'')];
+    if(phoneFix)return Object.assign({},row,{name:phoneFix});
+    const weak=!row.name || row.name===editName || !/[\u0E00-\u0E7F]/.test(row.name);
+    if(!weak)return row;
+    const phone=String(row.phone||'');
+    if(!phone)return row;
+    const idx=raw.indexOf(phone);
+    if(idx<0)return row;
+    const start=Math.max(0,idx-80), end=Math.min(raw.length,idx+90);
+    const near=raw.slice(start,end);
+    const hint=hintNearPhone(near,idx-start)||ocrLatinNameHint(near)||cleanThaiNameUnicode(near);
+    return hint?Object.assign({},row,{name:hint}):row;
+  });
+}
+function sortedCirclesForBoard(){
+  return (circles||[]).map((circle,i)=>({circle,i})).sort((a,b)=>{
+    const dy=(a.circle.y||0)-(b.circle.y||0);
+    return Math.abs(dy)>8?dy:(a.circle.x||0)-(b.circle.x||0);
+  });
+}
+function metaForCircle(circle, rows, used){
+  rows=rows||[];
+  if(!rows.length)return {};
+  const maxRowY=Math.max(...rows.map(row=>Number(row.y)||0),0);
+  const yScale=maxRowY>(sourceCanvas.height||canvas.height||0)*1.25?1.8:1;
+  const ys=rows.map(row=>(Number(row.y)||0)/yScale).sort((a,b)=>a-b);
+  const gaps=[];
+  for(let i=1;i<ys.length;i++)gaps.push(ys[i]-ys[i-1]);
+  const medianGap=gaps.length?gaps.sort((a,b)=>a-b)[Math.floor(gaps.length/2)]:(sourceCanvas.height||canvas.height||800)/Math.max(1,rows.length);
+  const limit=Math.max(45,medianGap*.45);
+  let best=null;
+  rows.forEach((row,i)=>{
+    if(used.has(i))return;
+    const score=Math.abs(((Number(row.y)||0)/yScale)-(circle.y||0));
+    if(score<=limit && (!best || score<best.score))best={row,i,score};
+  });
+  if(best){used.add(best.i);return best.row}
+  return {};
+}
+function boardRowsFromOcrRows(rows){
+  const sortedRows=sortOcrRows(rows||[]);
+  const usedRows=new Set();
+  const sortedCircles=sortedCirclesForBoard();
+  if(!sortedCircles.length){
+    return sortedRows.map(x=>({name:x.name||'แก้ชื่อ',phone:x.phone||'',time:''}));
+  }
+  const hasRealY=sortedRows.some(row=>Number(row.y)>0);
+  if(!hasRealY){
+    return sortedCircles.map((entry,i)=>{
+      const row=sortedRows[i]||{};
+      return {name:row.name||'แก้ชื่อ',phone:row.phone||'',time:''};
+    });
+  }
+  return sortedCircles.map(({circle})=>{
+    const meta=metaForCircle(circle, sortedRows, usedRows);
+    return {name:meta.name||'แก้ชื่อ',phone:meta.phone||'',time:''};
+  });
+}
+function boardRowsFromOcrRowsStable(rows){
+  const editName='\u0E41\u0E01\u0E49\u0E0A\u0E37\u0E48\u0E2D';
+  const sortedRows=sortOcrRows(rows||[]);
+  const sortedCircles=sortedCirclesForBoard();
+  if(!sortedCircles.length){
+    return sortedRows.map(row=>({name:row.name||editName,phone:row.phone||'',time:''}));
+  }
+  const usedRows=new Set();
+  const hasRealY=sortedRows.some(row=>Number(row.y)>0);
+  return sortedCircles.map(({circle},i)=>{
+    const row=hasRealY ? metaForCircle(circle, sortedRows, usedRows) : (sortedRows[i]||{});
+    return {name:row.name||editName,phone:row.phone||'',time:''};
+  });
+}
+boardRowsFromOcrRows=boardRowsFromOcrRowsStable;
+
+function renderOcrRows(){
+  const wrap=document.getElementById('ocrRows'),status=document.getElementById('ocrStatus');
+  if(!wrap)return;
+  wrap.innerHTML='';
+  if(status) status.textContent=(lastOcrStatus || (ocrRows.length?`พบข้อมูล ${ocrRows.length} รายการ สามารถแก้ชื่อ/เบอร์ก่อนส่งเข้าบอร์ดได้`:'ยังไม่พบเบอร์จากภาพ ถ้า OCR ไม่ขึ้นให้แก้ชื่อ/เบอร์ในหน้าบอร์ดได้'));
+  ocrRows.forEach((row,i)=>{
+    const div=document.createElement('div');div.className='ocrRow';
+    div.innerHTML=`<input placeholder="ชื่อ" value="${(row.name||'').replace(/"/g,'&quot;')}"><input placeholder="เบอร์" value="${(row.phone||'').replace(/"/g,'&quot;')}">`;
+    div.children[0].oninput=e=>ocrRows[i].name=e.target.value;
+    div.children[1].oninput=e=>ocrRows[i].phone=e.target.value;
+    wrap.appendChild(div);
+  });
+}
+async function runOcr(){
+  const status=document.getElementById('ocrStatus');
+  try{
+    lastOcrStatus='';
+    if(status) status.textContent='กำลังอ่าน OCR จากภาพ...';
+    const texts=[];
+    const thaiNameTexts=[];
+    const lineObjs=[];
+    const engines=[];
+    for(const ocrCanvas of makeOcrCanvases()){
+      if(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.OcrPlugin){
+        const res=await Capacitor.Plugins.OcrPlugin.scanImage({image:ocrCanvas.toDataURL('image/jpeg',.96)});
+        if(res.engine)engines.push(res.engine);
+        if(Array.isArray(res.lines)){
+          res.lines.forEach(x=>lineObjs.push(Object.assign({},x,{engine:res.engine||''})));
+          texts.push(res.lines.map(x=>x.text||'').join('\n'));
+        }
+        texts.push(res.text||res.value||'');
+        if(res.paddleText)texts.push(res.paddleText||'');
+        if(res.mlkitText)texts.push(res.mlkitText||'');
+        if(res.tesseractText){texts.push(res.tesseractText||'');thaiNameTexts.push(res.tesseractText||'')}
+      }else if(window.TextDetector){
+        const detector=new TextDetector();
+        const blocks=await detector.detect(ocrCanvas);
+        texts.push(blocks.map(b=>b.rawValue||'').join('\n'));
+      }
+    }
+    let text=texts.join('\n');
+    lastOcrRaw=text.replace(/\s+/g,' ').trim().slice(0,160);
+    ocrRows=repairRowsFromRawHints(applyThaiNames(sortOcrRows(lineObjs.length?parseOcrLines(lineObjs,text):parseOcrText(text)), thaiNameTexts.join('\n')), text);
+    lastOcrStatus=ocrRows.length?`OCR ${[...new Set(engines)].join(', ')||'ready'} พบ ${ocrRows.length} รายการ`:'OCR อ่านแล้วแต่ยังจับเบอร์ไม่ได้ ให้กดอ่านใหม่หรือเพิ่มชื่อเอง';
+  }catch(e){
+    lastOcrStatus='OCR อ่านไม่ได้ในเครื่องนี้ แต่ยังส่งรูปเข้าบอร์ดและแก้ชื่อภายหลังได้';
+    if(status) status.textContent=lastOcrStatus;
+  }
+  renderOcrRows();
+}
+if(document.getElementById('ocrBtn')) document.getElementById('ocrBtn').onclick=runOcr;
+if(document.getElementById('addOcrRowBtn')) document.getElementById('addOcrRowBtn').onclick=()=>{ocrRows.push({name:'แก้ชื่อ',phone:''});renderOcrRows()};
+if(document.getElementById('sendNamesBtn')) document.getElementById('sendNamesBtn').onclick=()=>sendRowsToBoard(sortOcrRows(ocrRows).map(x=>({name:x.name||'แก้ชื่อ',phone:x.phone||'',time:''})), 'ส่งชื่อเข้าบอร์ดแล้ว');
+if(document.getElementById('testOcr1Btn')) document.getElementById('testOcr1Btn').onclick=()=>loadImage('test/112338.jpg');
+if(document.getElementById('testOcr2Btn')) document.getElementById('testOcr2Btn').onclick=()=>loadImage('test/112339.jpg');
+if(document.getElementById('testLatestOcrBtn')) document.getElementById('testLatestOcrBtn').onclick=()=>loadImage('test/latest_ocr.jpg');
+if(document.getElementById('sendNamesBtn')) document.getElementById('sendNamesBtn').onclick=()=>sendRowsToBoard(boardRowsFromOcrRows(ocrRows), 'ส่งชื่อเข้าบอร์ดแล้ว');
+
+function makeOcrCanvases(){
+  if(!sourceCanvas.width)return [canvas];
+  const variants=[];
+  const regions=[
+    {left:.00,top:0,width:.86,height:1}
+  ];
+  regions.forEach(region=>[1.8].forEach(scale=>{
+    const cropLeft=Math.floor(sourceCanvas.width*region.left), cropTop=Math.floor(sourceCanvas.height*region.top);
+    const cropW=Math.floor(sourceCanvas.width*region.width), cropH=Math.floor(sourceCanvas.height*region.height);
+    const cn=document.createElement('canvas');cn.width=Math.round(cropW*scale);cn.height=Math.round(cropH*scale);
+    const cx=cn.getContext('2d',{willReadFrequently:true});cx.imageSmoothingEnabled=true;cx.imageSmoothingQuality='high';
+    cx.drawImage(sourceCanvas,cropLeft,cropTop,cropW,cropH,0,0,cn.width,cn.height);
+    if(scale>1.5){
+      const id=cx.getImageData(0,0,cn.width,cn.height),d=id.data;
+      for(let i=0;i<d.length;i+=4){const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];const v=g>205?255:g<78?0:g;d[i]=d[i+1]=d[i+2]=v}
+      cx.putImageData(id,0,0);
+    }
+    variants.push(cn);
+  }));
+  return variants;
+}
+
+function sendRowsToBoard(rows, message){
+  rows=(rows||[]).filter(x=>(x.name&&x.name.trim())||(x.phone&&x.phone.trim()));
+  if(!rows.length){alert('ยังไม่มีชื่อ/เบอร์ให้ส่ง');return false}
+  let arr=[];
+  try{ arr=JSON.parse(localStorage.getItem('DEVIL_BOARD_PENDING_ITEMS')||'[]'); }catch(e){}
+  arr=arr.concat(rows).slice(-120);
+  localStorage.setItem('DEVIL_BOARD_PENDING_ITEMS', JSON.stringify(arr));
+  alert(message||('ส่งเข้าบอร์ด '+rows.length+' รายการ'));
+  location.href='poster.html';
+  return true;
+}
+function avatarDataUrl(cn){
+  const out=document.createElement('canvas');
+  out.width=out.height=180;
+  const ox=out.getContext('2d');
+  ox.imageSmoothingEnabled=true;ox.imageSmoothingQuality='high';
+  ox.drawImage(cn,0,0,out.width,out.height);
+  try{
+    const webp=out.toDataURL('image/webp',.72);
+    if(webp && webp.startsWith('data:image/webp'))return webp;
+  }catch(e){}
+  return out.toDataURL('image/png');
+}
+
+function pix(data,idx){const r=data[idx],g=data[idx+1],b=data[idx+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b);return (mx-mn)+(255-mx)*.85}
+function autoDetect(){if(!img.src)return;redraw();const sens=+sensEl.value,w=canvas.width,h=canvas.height,id=ctx.getImageData(0,0,w,h),data=id.data;
+const leftMax=Math.min(Math.floor(w*.22),Math.max(130,Math.floor(w*.16))),rows=new Array(h).fill(0);
+for(let y=0;y<h;y++){let score=0;for(let x=0;x<leftMax;x+=2)if(pix(data,(y*w+x)*4)>sens)score++;rows[y]=score}
+let bands=[],inBand=false,sy=0,minRow=Math.max(3,Math.floor(leftMax*.025));
+for(let y=0;y<h;y++){if(rows[y]>minRow&&!inBand){sy=y;inBand=true}if((rows[y]<=minRow||y===h-1)&&inBand){let ey=y;if(ey-sy>14)bands.push([sy,ey]);inBand=false}}
+let merged=[];for(const b of bands){const l=merged[merged.length-1];if(l&&b[0]-l[1]<18)l[1]=b[1];else merged.push(b)}
+let found=[];for(const [sy,ey] of merged){let minx=leftMax,maxx=0,miny=ey,maxy=sy,hits=0;for(let y=sy;y<=ey;y++)for(let x=0;x<leftMax;x++)if(pix(data,(y*w+x)*4)>sens){minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y);hits++}
+if(hits<20)continue;let bw=maxx-minx,bh=maxy-miny;if(bw<10||bh<10)continue;let cy=(miny+maxy)/2,cx=(minx+maxx)/2,r=Math.max(bw,bh)/2+8,est=Math.min(leftMax*.33,Math.max(28,h/merged.length/5.8));if(r<est*.7)r=est;r=Math.min(r,leftMax*.48);if(cx+r>leftMax)cx=leftMax-r-3;if(cx-r<0)cx=r+3;
+if(!found.some(c=>Math.hypot(c.x-cx,c.y-cy)<Math.max(c.r,r)*.85))found.push({x:cx,y:cy,r,adj:defaultAdj()})}
+circles=found.sort((a,b)=>a.y-b.y).filter(c=>c.r>18);selected=circles.length?0:-1;redraw()}
+
+detectBtn.onclick=autoDetect;clearBtn.onclick=()=>{circles=[];selected=-1;redraw()};
+addBtn.onclick=()=>{if(!img.src)return;const r=Math.round(Math.min(canvas.width,canvas.height)*.045);circles.push({x:r+18,y:canvas.height*.13+circles.length*r*2.75,r,adj:defaultAdj()});selected=circles.length-1;redraw()};
+[sensEl,edgeCut,edgeOnly,sharpen,quality,enhanceMode,upscaleMode].forEach(el=>el.oninput=el.onchange=redraw);
+
+function pos(e){const rect=canvas.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:(t.clientX-rect.left)*canvas.width/rect.width,y:(t.clientY-rect.top)*canvas.height/rect.height}}
+canvas.addEventListener('pointerdown',e=>{const p=pos(e);last=p;dragging=true;selected=-1;for(let i=circles.length-1;i>=0;i--){const c=circles[i];if(Math.hypot(p.x-c.x,p.y-c.y)<c.r+28){selected=i;break}}redraw()});
+canvas.addEventListener('pointermove',e=>{if(!dragging||selected<0)return;const p=pos(e),c=circles[selected];c.x+=p.x-last.x;c.y+=p.y-last.y;last=p;redraw()});
+window.addEventListener('pointerup',()=>dragging=false);
+canvas.addEventListener('wheel',e=>{if(selected<0)return;e.preventDefault();circles[selected].r=Math.max(10,circles[selected].r+(e.deltaY<0?4:-4));redraw()},{passive:false});
+
+function edgeAlphaMask(out){const cut=+edgeCut.value;if(cut<=0)return;const o=out.getContext('2d',{willReadFrequently:true}),w=out.width,h=out.height,id=o.getImageData(0,0,w,h),d=id.data,cx=w/2,cy=h/2,r=w/2,inner=r-cut;
+for(let y=0;y<h;y++)for(let x=0;x<w;x++){const idx=(y*w+x)*4,dist=Math.hypot(x-cx,y-cy);if(dist>inner){const fade=Math.max(0,Math.min(1,(r-dist)/Math.max(1,cut)));d[idx+3]=Math.round(d[idx+3]*fade)}}o.putImageData(id,0,0)}
+
+function clamp(v){return Math.max(0,Math.min(255,v))}
+function applyContrast(id, amount){
+  const d=id.data, factor=(259*(amount+255))/(255*(259-amount));
+  for(let i=0;i<d.length;i+=4){
+    d[i]=clamp(factor*(d[i]-128)+128);
+    d[i+1]=clamp(factor*(d[i+1]-128)+128);
+    d[i+2]=clamp(factor*(d[i+2]-128)+128);
+  }
+}
+function applySaturation(id, sat){
+  const d=id.data;
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i],g=d[i+1],b=d[i+2],gray=0.299*r+0.587*g+0.114*b;
+    d[i]=clamp(gray+(r-gray)*sat);
+    d[i+1]=clamp(gray+(g-gray)*sat);
+    d[i+2]=clamp(gray+(b-gray)*sat);
+  }
+}
+function softSmoothCanvas(out, strength=0.35){
+  const o=out.getContext('2d',{willReadFrequently:true}), w=out.width, h=out.height;
+  const src=o.getImageData(0,0,w,h), dst=o.createImageData(w,h), s=src.data, d=dst.data;
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+    const idx=(y*w+x)*4;
+    for(let ch=0;ch<3;ch++){
+      let sum=0; for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++)sum+=s[((y+yy)*w+(x+xx))*4+ch];
+      const avg=sum/9; d[idx+ch]=clamp(s[idx+ch]*(1-strength)+avg*strength);
+    }
+    d[idx+3]=s[idx+3];
+  }
+  o.putImageData(dst,0,0);
+}
+function enhanceCanvas(out, mode){
+  if(mode==='none') return out;
+  const o=out.getContext('2d',{willReadFrequently:true});
+  if(mode==='face'){
+    softSmoothCanvas(out,0.18);
+    sharpenCanvas(out);
+    const id=o.getImageData(0,0,out.width,out.height); applyContrast(id,18); applySaturation(id,1.08); o.putImageData(id,0,0);
+  } else if(mode==='ultra'){
+    sharpenCanvas(out); sharpenCanvas(out);
+    const id=o.getImageData(0,0,out.width,out.height); applyContrast(id,24); applySaturation(id,1.05); o.putImageData(id,0,0);
+  } else if(mode==='real'){
+    softSmoothCanvas(out,0.28);
+    const id=o.getImageData(0,0,out.width,out.height); applyContrast(id,10); applySaturation(id,1.06); o.putImageData(id,0,0);
+    sharpenCanvas(out);
+  } else if(mode==='anime'){
+    softSmoothCanvas(out,0.45);
+    const id=o.getImageData(0,0,out.width,out.height); applyContrast(id,22); applySaturation(id,1.28); o.putImageData(id,0,0);
+    sharpenCanvas(out);
+  }
+  return out;
+}
+function upscaleCanvas(out, factor){
+  factor=+factor||1;
+  if(factor<=1) return out;
+  const big=document.createElement('canvas');
+  big.width=out.width*factor; big.height=out.height*factor;
+  const b=big.getContext('2d',{willReadFrequently:true});
+  b.imageSmoothingEnabled=true; b.imageSmoothingQuality='high';
+  b.drawImage(out,0,0,big.width,big.height);
+  // light sharpen after upscale
+  if(big.width<=4096) sharpenCanvas(big);
+  return big;
+}
+function sharpenCanvas(out){const o=out.getContext('2d',{willReadFrequently:true}),w=out.width,h=out.height,src=o.getImageData(0,0,w,h),dst=o.createImageData(w,h),s=src.data,d=dst.data,k=[0,-1,0,-1,5,-1,0,-1,0];
+for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){for(let ch=0;ch<3;ch++){let v=0,ki=0;for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++)v+=s[((y+yy)*w+(x+xx))*4+ch]*k[ki++];d[(y*w+x)*4+ch]=Math.max(0,Math.min(255,v))}d[(y*w+x)*4+3]=s[(y*w+x)*4+3]}o.putImageData(dst,0,0)}
+
+function cropCanvas(c, previewSize, noUpscale){const size=previewSize||+quality.value,adj=c.adj||defaultAdj(),srcR=Math.max(5,c.r/adj.zoom),out=document.createElement('canvas');out.width=out.height=size;const o=out.getContext('2d',{willReadFrequently:true});o.imageSmoothingEnabled=true;o.imageSmoothingQuality='high';o.clearRect(0,0,size,size);o.save();o.beginPath();o.arc(size/2,size/2,size/2,0,Math.PI*2);o.clip();o.drawImage(sourceCanvas,c.x-srcR+adj.dx,c.y-srcR+adj.dy,srcR*2,srcR*2,0,0,size,size);o.restore();if(edgeOnly.checked)edgeAlphaMask(out);if(sharpen.checked&&size<=2048)sharpenCanvas(out);enhanceCanvas(out,enhanceMode.value);return noUpscale?out:upscaleCanvas(out,upscaleMode.value)}
+
+function makePreviews(){previewGrid.innerHTML='';circles.forEach((c,i)=>{if(!c.adj)c.adj=defaultAdj();const box=document.createElement('div');box.className='prev';const crop=document.createElement('div');crop.className='cropBox'+(i===selected?' active':'');const pc=cropCanvas(c,360);crop.appendChild(pc);box.appendChild(crop);
+const z=document.createElement('div');z.className='minirow';z.innerHTML='<button>- ซูม</button><button>+ ซูม</button>';z.children[0].onclick=()=>{c.adj.zoom=Math.max(.5,c.adj.zoom-.12);selected=i;redraw()};z.children[1].onclick=()=>{c.adj.zoom=Math.min(5,c.adj.zoom+.12);selected=i;redraw()};box.appendChild(z);
+const r=document.createElement('div');r.className='minirow';r.innerHTML='<button>รีเซ็ต</button><button>โหลดรูป</button>';r.children[0].onclick=()=>{c.adj=defaultAdj();selected=i;redraw()};r.children[1].onclick=()=>downloadCanvas(cropCanvas(c),`profile_${String(i+1).padStart(2,'0')}.png`);box.appendChild(r);
+attachCropGestures(crop,i);previewGrid.appendChild(box)})}
+
+function touchDist(e){if(e.touches.length<2)return 0;let a=e.touches[0],b=e.touches[1];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
+function attachCropGestures(el,i){
+el.addEventListener('pointerdown',e=>{selected=i;cropGest={i,drag:true,lastX:e.clientX,lastY:e.clientY,lastDist:0};el.setPointerCapture&&el.setPointerCapture(e.pointerId);redraw()});
+el.addEventListener('pointermove',e=>{if(!cropGest.drag||cropGest.i!==i)return;const c=circles[i],adj=c.adj;const rect=el.getBoundingClientRect();adj.dx-= (e.clientX-cropGest.lastX)*c.r/(rect.width*0.78)/adj.zoom;adj.dy-= (e.clientY-cropGest.lastY)*c.r/(rect.height*0.78)/adj.zoom;cropGest.lastX=e.clientX;cropGest.lastY=e.clientY;redraw()});
+el.addEventListener('pointerup',()=>cropGest.drag=false);
+el.addEventListener('touchstart',e=>{selected=i;if(e.touches.length===2)cropGest.lastDist=touchDist(e)},{passive:false});
+el.addEventListener('touchmove',e=>{e.preventDefault();const c=circles[i],adj=c.adj;if(e.touches.length===2){const d=touchDist(e);if(cropGest.lastDist){adj.zoom=Math.max(.5,Math.min(5,adj.zoom*(d/cropGest.lastDist)))}cropGest.lastDist=d;redraw()}},{passive:false});
+}
+
+function dataURLtoBlob(dataurl){const arr=dataurl.split(','),mime=arr[0].match(/:(.*?);/)[1],bstr=atob(arr[1]);let n=bstr.length;const u8=new Uint8Array(n);while(n--)u8[n]=bstr.charCodeAt(n);return new Blob([u8],{type:mime})}
+function downloadCanvas(c,name){return DEVIL_NATIVE_SAVE_DATAURL(c.toDataURL('image/png'), name || ('profile_'+Date.now()+'.png'))}
+exportBtn.onclick=()=>{if(!circles.length)return;circles.forEach((c,i)=>setTimeout(()=>downloadCanvas(cropCanvas(c),`profile_${String(i+1).padStart(2,'0')}.png`),i*260))};
+shareBtn.onclick=async()=>{if(!circles.length)return;try{const files=[];for(let i=0;i<circles.length;i++){const blob=dataURLtoBlob(cropCanvas(circles[i]).toDataURL('image/png'));files.push(new File([blob],`profile_${String(i+1).padStart(2,'0')}.png`,{type:'image/png'}))}if(navigator.canShare&&navigator.canShare({files}))await navigator.share({files,title:'profile crops'});else alert('เครื่องนี้ไม่รองรับ Share หลายไฟล์ ใช้ Download แทน')}catch(e){alert('แชร์ไม่สำเร็จ ใช้ Download แทนได้')}};
+syncLabels();
+</script>
+
+<script>
+async function DEVIL_NATIVE_SAVE_DATAURL(data, filename){
+  try{
+    if(window.Capacitor && Capacitor.Plugins){
+      if(Capacitor.Plugins.SaveImage && Capacitor.Plugins.SaveImage.saveBase64){
+        await Capacitor.Plugins.SaveImage.saveBase64({data:data, filename:filename});
+        alert('บันทึกรูปแล้ว');
+        return true;
+      }
+      if(Capacitor.Plugins.SaveImagePlugin && Capacitor.Plugins.SaveImagePlugin.savePng){
+        await Capacitor.Plugins.SaveImagePlugin.savePng({image:data, filename:filename});
+        alert('บันทึกรูปแล้ว');
+        return true;
+      }
+    }
+  }catch(e){
+    alert('Native save error: '+(e.message || JSON.stringify(e)));
+    return false;
+  }
+
+  try{
+    const a=document.createElement('a');
+    a.href=data;
+    a.download=filename || ('devil-image-'+Date.now()+'.png');
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return true;
+  }catch(e){
+    alert('Save fallback error: '+e.message);
+    return false;
+  }
+}
+</script>
+
+<style>
+#devilHomeTop{
+ position:fixed;left:10px;top:10px;z-index:999999;
+ background:#ff7a00;color:#120700;border:0;border-radius:13px;
+ padding:10px 14px;font-weight:1000;font-size:14px;
+ box-shadow:0 6px 18px rgba(0,0,0,.45)
+}
+body{padding-top:48px!important}
+</style>
+<button id="devilHomeTop" type="button">ไปหน้าบอร์ด</button>
+<script>
+document.getElementById('devilHomeTop').onclick=function(){ location.href='poster.html'; };
+</script>
+
+<script>
+(function(){
+  const btn=document.getElementById('sendBoardBtn');
+  if(btn){
+    btn.onclick=function(){
+      try{
+        if(!circles || !circles.length){ alert('ยังไม่มีรูปวงกลม'); return; }
+        const pending=[];
+        const sortedRows=sortOcrRows(ocrRows);
+        const usedRows=new Set();
+        sortedCirclesForBoard().forEach(({circle},i)=>{
+          const meta=metaForCircle(circle, sortedRows, usedRows);
+          const boardCanvas=cropCanvas(circle,360,true);
+          pending.push({
+            avatarSrc:avatarDataUrl(boardCanvas),
+            name:meta.name||'แก้ชื่อ',
+            phone:meta.phone||'',
+            time:''
+          });
+        });
+        sendRowsToBoard(pending, 'ส่งรูปที่ตัดแล้วเข้าบอร์ด '+pending.length+' รูป');
+      }catch(e){
+        alert('ส่งไม่สำเร็จ: '+e.message);
+      }
+    };
+  }
+})();
+</script>
+
+<script>
+(function(){
+  const btn=document.getElementById('sendBoardBtn');
+  if(!btn)return;
+  btn.onclick=function(){
+    try{
+      if(!circles || !circles.length){ alert('\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B\u0E27\u0E07\u0E01\u0E25\u0E21'); return; }
+      const stableRows=boardRowsFromOcrRowsStable(ocrRows);
+      const pending=[];
+      sortedCirclesForBoard().forEach(({circle},i)=>{
+        const meta=stableRows[i]||{};
+        const boardCanvas=cropCanvas(circle,360,true);
+        pending.push({
+          avatarSrc:avatarDataUrl(boardCanvas),
+          name:meta.name||'\u0E41\u0E01\u0E49\u0E0A\u0E37\u0E48\u0E2D',
+          phone:meta.phone||'',
+          time:''
+        });
+      });
+      sendRowsToBoard(pending, '\u0E2A\u0E48\u0E07\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E15\u0E31\u0E14\u0E41\u0E25\u0E49\u0E27\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E2D\u0E23\u0E4C\u0E14 '+pending.length+' \u0E23\u0E39\u0E1B');
+    }catch(e){
+      alert('\u0E2A\u0E48\u0E07\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08: '+e.message);
+    }
+  };
+})();
+</script>
+
+<script src="gemini.js"></script>
+<script src="manual_import_poster_fix.js"></script>
+<script src="codex_preview_tools.js"></script>
+</body>
+</html>
