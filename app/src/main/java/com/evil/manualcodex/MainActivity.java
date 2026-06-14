@@ -234,7 +234,7 @@ public class MainActivity extends Activity {
 
                     if (bitmap == null) throw new Exception("decode bitmap failed");
 
-                    final String tessText = runThaiTesseract(bitmap);
+                    final String tessText = ""; // disabled: tess-two native crash guard
 
                     InputImage image = InputImage.fromBitmap(bitmap, 0);
                     TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
@@ -266,7 +266,7 @@ public class MainActivity extends Activity {
                                     String both = (ml + "\n" + tessText).trim();
 
                                     out.put("ok", true);
-                                    out.put("engine", "mlkit+tesseract-tha");
+                                    out.put("engine", "mlkit-safe-no-tess");
                                     out.put("text", both);
                                     out.put("value", both);
                                     out.put("mlkitText", ml);
@@ -276,7 +276,7 @@ public class MainActivity extends Activity {
                                 } catch (Exception e) {
                                     try {
                                         out.put("ok", false);
-                                        out.put("engine", "mlkit+tesseract-tha");
+                                        out.put("engine", "mlkit-safe-no-tess");
                                         out.put("error", String.valueOf(e.getMessage()));
                                         out.put("text", tessText);
                                         out.put("tesseractText", tessText);
@@ -290,7 +290,7 @@ public class MainActivity extends Activity {
                                 JSONObject out = new JSONObject();
                                 try {
                                     out.put("ok", true);
-                                    out.put("engine", "tesseract-tha-only");
+                                    out.put("engine", "mlkit-safe-no-tess");
                                     out.put("text", tessText);
                                     out.put("value", tessText);
                                     out.put("mlkitText", "");
