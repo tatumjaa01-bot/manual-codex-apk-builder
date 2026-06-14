@@ -1,0 +1,11 @@
+{
+  "project": "imported-com-devil-winnerstudio",
+  "patchedHtml": [],
+  "suspectFiles": [
+    "workspace/imported-com-devil-winnerstudio/public/index.html",
+    "workspace/imported-com-devil-winnerstudio/public/poster.html",
+    "workspace/imported-com-devil-winnerstudio/public/crop.html",
+    "workspace/imported-com-devil-winnerstudio/public/gemini.js",
+    "workspace/imported-com-devil-winnerstudio/public/manual_import_poster_fix.js"
+  ]
+}
