@@ -5,7 +5,6 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Intent;
-import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
@@ -28,14 +27,12 @@ import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import com.googlecode.tesseract.android.TessBaseAPI;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.OutputStream;
 
 public class MainActivity extends Activity {
@@ -127,48 +124,8 @@ public class MainActivity extends Activity {
         });
     }
 
-    private String prepareTessData() throws Exception {
-        File base = new File(getFilesDir(), "tesseract");
-        File tess = new File(base, "tessdata");
-        if (!tess.exists()) tess.mkdirs();
-
-        File tha = new File(tess, "tha.traineddata");
-        if (!tha.exists() || tha.length() < 1000000) {
-            AssetManager am = getAssets();
-            InputStream in = am.open("www/tessdata/tha.traineddata");
-            FileOutputStream out = new FileOutputStream(tha);
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-            out.flush();
-            out.close();
-            in.close();
-        }
-        return base.getAbsolutePath();
-    }
-
     private String runThaiTesseract(Bitmap bitmap) {
-        TessBaseAPI tess = null;
-        try {
-            String dataPath = prepareTessData();
-
-            tess = new TessBaseAPI();
-            boolean ok = tess.init(dataPath, "tha");
-            if (!ok) return "";
-
-            tess.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST,
-                    "กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮะาิีึืุูเแโใไำ่้๊๋์ๆฯ0123456789xX-* .");
-
-            tess.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
-            tess.setImage(bitmap);
-
-            String text = tess.getUTF8Text();
-            return text == null ? "" : text.trim();
-        } catch (Exception e) {
-            return "";
-        } finally {
-            try { if (tess != null) tess.end(); } catch (Exception ignored) {}
-        }
+        return ""; // safe mode: original OCR plugin not ported yet
     }
 
     public class AndroidBridge {
