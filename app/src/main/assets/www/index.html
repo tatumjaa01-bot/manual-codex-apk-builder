@@ -2,23 +2,84 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BG Test App</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🔥 My Test App JSON</title>
 <style>
-body{margin:0;background:#050507;color:white;font-family:system-ui;padding:22px}.box{background:#15151c;border:1px solid #333;border-radius:26px;padding:22px;box-shadow:0 0 40px #000}h1{color:#65ff00;font-size:38px;margin:0 0 12px}.pill{display:inline-block;background:#65ff00;color:#000;border-radius:999px;padding:10px 16px;font-weight:900;margin:6px 0}.log{background:#050507;border:1px solid #333;border-radius:18px;padding:16px;margin-top:14px;white-space:pre-wrap}button{background:#ffd36a;border:0;border-radius:16px;padding:14px 18px;font-weight:900;font-size:16px;margin-top:14px}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  background:#050505;
+  color:#ffffff;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:32px 18px;
+}
+.card{
+  width:min(580px,100%);
+  background:#15161d;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:30px;
+  padding:30px;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);
+}
+h1{
+  margin:0 0 18px;
+  font-size:44px;
+  line-height:1.05;
+  color:#55ff00;
+}
+.badge{
+  display:inline-block;
+  background:#55ff00;
+  color:#050505;
+  padding:12px 22px;
+  border-radius:999px;
+  font-weight:900;
+  margin:8px 0 22px;
+}
+p{
+  font-size:21px;
+  line-height:1.55;
+  opacity:.92;
+}
+button{
+  border:0;
+  border-radius:20px;
+  padding:16px 24px;
+  font-size:20px;
+  font-weight:900;
+  background:#ffd66b;
+  margin-top:12px;
+}
+#log{
+  margin-top:22px;
+  padding:18px;
+  border-radius:20px;
+  background:#050505;
+  border:1px solid rgba(255,255,255,.16);
+  font-size:18px;
+}
 </style>
 </head>
 <body>
-<div class="box">
-<h1>🟢 BG Test App V2</h1>
-<div class="pill">สร้างโดย Manual Codex Lite</div>
-<p>ถ้าเห็นหน้านี้ แปลว่า write_file + npm install + server.js ทำงานสำเร็จ</p>
-<button onclick="tick()">ทดสอบปุ่ม</button>
-<div class="log" id="log">สถานะ: พร้อมทดสอบ</div>
-</div>
+  <div class="card">
+    <h1>🔥 My Test App JSON</h1>
+    <div class="badge">Manual Codex Lite</div>
+    <p>สร้างหน้านี้จาก JSON Director</p>
+    <button onclick="tick()">กดทดสอบ</button>
+    <div id="log">สถานะ: พร้อมทดสอบ</div>
+  </div>
+
 <script>
-let n=0;
-function tick(){n++;document.getElementById('log').textContent='สถานะ: ปุ่มทำงานแล้ว ✅\nจำนวนครั้ง: '+n+'\nเวลา: '+new Date().toLocaleString('th-TH')}
+let n = 0;
+function tick(){
+  n++;
+  document.getElementById('log').textContent =
+    'สถานะ: ปุ่มทำงานแล้ว ✅ จำนวนครั้ง: ' + n + ' เวลา: ' + new Date().toLocaleString('th-TH');
+}
 </script>
 </body>
 </html>
