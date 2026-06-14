@@ -13,7 +13,6 @@
           var raw = AndroidBridge.saveBase64Image(data, filename);
           var res = {};
           try{ res = JSON.parse(raw || "{}"); }catch(e){ res = {ok:false, error:String(raw)}; }
-
           if(res.ok) resolve(res);
           else reject(res);
           return;
@@ -44,18 +43,18 @@
       if(typeof payload === "string") payload = JSON.parse(payload);
     }catch(e){}
 
-    p.resolve(payload || {ok:false, text:""});
+    p.resolve(payload || {ok:false, text:"", lines:[]});
   };
 
   Capacitor.Plugins.OcrPlugin = Capacitor.Plugins.OcrPlugin || {};
   Capacitor.Plugins.OcrPlugin.scanImage = function(opts){
     opts = opts || {};
-    return new Promise(function(resolve, reject){
+    return new Promise(function(resolve){
       try{
         var image = opts.image || opts.data || opts.base64 || "";
         var id = "ocr_" + (ocrSeq++);
 
-        ocrPending[id] = {resolve: resolve, reject: reject};
+        ocrPending[id] = {resolve: resolve};
 
         setTimeout(function(){
           if(ocrPending[id]){
