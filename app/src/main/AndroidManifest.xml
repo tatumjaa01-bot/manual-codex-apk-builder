@@ -7,12 +7,6 @@
 
 
 
-
-
-
-
-
-
 <application
         android:label="Winner Studio Clone"
         android:icon="@mipmap/ic_launcher"
