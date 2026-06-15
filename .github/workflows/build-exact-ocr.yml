@@ -45,7 +45,7 @@ jobs:
           rm -rf work
           java -jar apktool.jar d -f input/base.apk -o work
 
-      - name: Patch package and label
+      - name: Patch package permission provider conflict
         run: |
           python3 <<'PY'
           from pathlib import Path
@@ -57,36 +57,56 @@ jobs:
           mfile = work / "AndroidManifest.xml"
           m = mfile.read_text(errors="ignore")
 
-          # ขยาย .MainActivity เป็น full class เดิมก่อนเปลี่ยน package
+          # ขยาย .MainActivity/.xxx ให้เป็น class เดิมก่อนเปลี่ยน manifest package
           m = re.sub(r'(android:name=")\.([^"]+)"', r'\1' + orig + r'.\2"', m)
 
+          # เปลี่ยน package หลัก
           if re.search(r'<manifest[^>]*\bpackage="[^"]+"', m):
               m = re.sub(r'(<manifest[^>]*\bpackage=")[^"]+(")', r'\1' + new + r'\2', m, count=1)
           else:
               m = re.sub(r'<manifest\b', '<manifest package="' + new + '"', m, count=1)
 
-          # กัน provider/authorities ชนตัวจริง
-          m = m.replace(orig + ".fileprovider", new + ".fileprovider")
-          m = m.replace(orig + ".provider", new + ".provider")
+          # แก้ custom permission ที่ชน original
+          m = m.replace(orig + ".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION", new + ".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION")
+          m = m.replace(orig + ".permission", new + ".permission")
+
+          # แก้ provider authorities ที่ชน original แต่ไม่เปลี่ยน class name
+          def fix_authorities(match):
+              val = match.group(2)
+              val = val.replace(orig, new)
+              return match.group(1) + val + match.group(3)
+
+          m = re.sub(r'(android:authorities=")([^"]+)(")', fix_authorities, m)
+
           mfile.write_text(m)
 
-          for p in (work / "res").glob("values*/strings.xml"):
+          # แก้ authorities/permission ใน XML อื่น ๆ เผื่อมี provider paths หรือ string ref
+          for p in list((work / "res").rglob("*.xml")):
               s = p.read_text(errors="ignore")
-              s2 = re.sub(r'(<string name="app_name">).*?(</string>)', r'\1Winner Exact OCR\2', s)
+              s2 = s
+              s2 = s2.replace(orig + ".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION", new + ".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION")
+              s2 = s2.replace(orig + ".fileprovider", new + ".fileprovider")
+              s2 = s2.replace(orig + ".provider", new + ".provider")
+              s2 = re.sub(r'(<string name="app_name">).*?(</string>)', r'\1Winner Exact OCR\2', s2)
               if s2 != s:
                   p.write_text(s2)
 
-          print("patched:", new)
+          print("patched package:", new)
+          print("manifest conflict strings left:")
+          left = [x for x in [orig + ".DYNAMIC_RECEIVER", orig + ".fileprovider", orig + ".provider"] if x in mfile.read_text(errors="ignore")]
+          print(left)
           PY
 
-      - name: Verify original OCR files
+      - name: Verify patched manifest
         run: |
+          echo "=== MANIFEST PACKAGE / PROVIDER / PERMISSION ==="
+          grep -nE "package=|provider|authorities|DYNAMIC_RECEIVER|permission" work/AndroidManifest.xml | head -120 || true
+          echo "=== OCR files ==="
           test -f work/lib/arm64-v8a/libppocrv5ncnn.so
           test -f work/lib/arm64-v8a/libtesseract.so
           test -f work/assets/tessdata/tha.traineddata
           test -f work/assets/PP_OCRv5_mobile_det.ncnn.bin
           test -f work/assets/PP_OCRv5_mobile_rec.ncnn.bin
-          grep -R "OcrPlugin" work/assets/capacitor.plugins.json work/assets/public 2>/dev/null | head -20 || true
           echo "OCR files OK"
 
       - name: Build APK
