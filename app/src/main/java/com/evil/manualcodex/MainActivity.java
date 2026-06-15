@@ -125,7 +125,7 @@ public class MainActivity extends Activity {
     }
 
     private String runThaiTesseract(Bitmap bitmap) {
-        return ""; // safe mode: original OCR plugin not ported yet
+        return ""; // safe mode
     }
 
     public class AndroidBridge {
