@@ -1,7 +1,9 @@
 name: Rebuild Board Icon APK
 
-on:
-  workflow_dispatch:
+'on':
+  push:
+    branches:
+      - 'board-icon-v7-*'
 
 jobs:
   build:
