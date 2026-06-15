@@ -1,0 +1,148 @@
+name: ZZ Rebuild Board Icon APK V11
+
+on:
+  push:
+    branches:
+      - "board-icon-v11-*"
+
+jobs:
+  rebuild-icon:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install apktool
+        shell: bash
+        run: |
+          set -e
+          mkdir -p tools
+          curl -L -o tools/apktool.jar https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar
+          java -jar tools/apktool.jar -version
+
+      - name: Reassemble input APK
+        shell: bash
+        run: |
+          set -e
+          cat icon_rebuild/chunks/input_apk.part.* > input.apk
+          ls -lh input.apk icon_rebuild/board-icon.png
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt | sort | tail -n 1)"
+          "$AAPT" dump badging input.apk | grep -E "package:|application-label|application-icon" | head -n 40 || true
+
+      - name: Decode APK
+        shell: bash
+        run: |
+          set -e
+          java -jar tools/apktool.jar d -f input.apk -o work
+
+      - name: Replace launcher icons
+        shell: bash
+        run: |
+          set -e
+          ICON="$GITHUB_WORKSPACE/icon_rebuild/board-icon.png"
+          cd work
+
+          echo "=== Existing launcher files ==="
+          find res -type f \( -iname "*ic_launcher*.png" -o -iname "*launcher*.png" -o -iname "*app_icon*.png" -o -iname "*ic_launcher*.webp" -o -iname "*launcher*.webp" \) ! -iname "*.9.png" | sort || true
+
+          while IFS= read -r P; do
+            [ -f "$P" ] || continue
+            cp "$ICON" "$P"
+            echo "replaced $P"
+          done < <(find res -type f \( -iname "*ic_launcher*.png" -o -iname "*launcher*.png" -o -iname "*app_icon*.png" -o -iname "*ic_launcher*.webp" -o -iname "*launcher*.webp" \) ! -iname "*.9.png" 2>/dev/null | sort)
+
+          mkdir -p res/drawable-nodpi
+          cp "$ICON" res/drawable-nodpi/ic_launcher_foreground.png
+          cp "$ICON" res/drawable-nodpi/ic_launcher.png
+          cp "$ICON" res/drawable-nodpi/launcher.png
+
+          while IFS= read -r XML; do
+            [ -f "$XML" ] || continue
+            if grep -q "adaptive-icon" "$XML"; then
+              printf '%s\n' \
+                '<?xml version="1.0" encoding="utf-8"?>' \
+                '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' \
+                '    <background android:drawable="@color/ic_launcher_background"/>' \
+                '    <foreground android:drawable="@drawable/ic_launcher_foreground"/>' \
+                '</adaptive-icon>' > "$XML"
+              echo "patched adaptive $XML"
+            fi
+          done < <(find res -type f \( -name "*ic_launcher*.xml" -o -name "*launcher*.xml" \) 2>/dev/null | sort)
+
+          mkdir -p res/values
+          if [ ! -f res/values/colors.xml ]; then
+            printf '%s\n' \
+              '<?xml version="1.0" encoding="utf-8"?>' \
+              '<resources>' \
+              '    <color name="ic_launcher_background">#050505</color>' \
+              '</resources>' > res/values/colors.xml
+          elif ! grep -q 'name="ic_launcher_background"' res/values/colors.xml; then
+            sed -i '/<\/resources>/i\    <color name="ic_launcher_background">#050505</color>' res/values/colors.xml
+          fi
+
+      - name: Build APK
+        shell: bash
+        run: |
+          set -e
+          java -jar tools/apktool.jar b work -o unsigned.apk
+          ls -lh unsigned.apk
+
+      - name: Zipalign
+        shell: bash
+        run: |
+          set -e
+          ZIPALIGN="$(find "$ANDROID_HOME/build-tools" -name zipalign | sort | tail -n 1)"
+          "$ZIPALIGN" -f 4 unsigned.apk aligned.apk
+          ls -lh aligned.apk
+
+      - name: Sign APK
+        shell: bash
+        run: |
+          set -e
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -n 1)"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt | sort | tail -n 1)"
+
+          if [ -f icon_rebuild/sign.keystore ]; then
+            KS="icon_rebuild/sign.keystore"
+            echo "Use uploaded matching keystore"
+          else
+            keytool -genkeypair \
+              -keystore debug.keystore \
+              -storepass android \
+              -keypass android \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+            KS="debug.keystore"
+            echo "Use new debug keystore"
+          fi
+
+          "$APKSIGNER" sign \
+            --v4-signing-enabled false \
+            --ks "$KS" \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out winner-director-ocr-v179-upload-font-decor-ICON-GH-V11.apk \
+            aligned.apk
+
+          "$APKSIGNER" verify --verbose winner-director-ocr-v179-upload-font-decor-ICON-GH-V11.apk
+          "$AAPT" dump badging winner-director-ocr-v179-upload-font-decor-ICON-GH-V11.apk | grep -E "package:|application-label|application-icon" | head -n 40 || true
+          ls -lh winner-director-ocr-v179-upload-font-decor-ICON-GH-V11.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: zz-board-icon-v11-apk
+          path: winner-director-ocr-v179-upload-font-decor-ICON-GH-V11.apk
