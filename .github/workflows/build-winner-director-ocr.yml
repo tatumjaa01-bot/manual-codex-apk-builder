@@ -1,0 +1,449 @@
+name: Build Winner Director OCR
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build tools
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Download original APK from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p input
+          gh release download exact-ocr-base --repo "$GITHUB_REPOSITORY" --pattern "base.apk" -D input
+          ls -lh input/base.apk
+
+      - name: Download apktool
+        run: |
+          curl -L --fail -o apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v3.0.2/apktool_3.0.2.jar
+          java -jar apktool.jar --version
+
+      - name: Decode APK
+        run: |
+          rm -rf work
+          java -jar apktool.jar d -f input/base.apk -o work
+
+      - name: Patch package and poster director
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          orig = "com.devil.winnerstudio"
+          new = "com.manualcodex.winnerstudio.directorocr"
+          work = Path("work")
+
+          mfile = work / "AndroidManifest.xml"
+          m = mfile.read_text(errors="ignore")
+
+          m = re.sub(r'(android:name=")\.([^"]+)"', r'\1' + orig + r'.\2"', m)
+          if re.search(r'<manifest[^>]*\bpackage="[^"]+"', m):
+              m = re.sub(r'(<manifest[^>]*\bpackage=")[^"]+(")', r'\1' + new + r'\2', m, count=1)
+          else:
+              m = re.sub(r'<manifest\b', '<manifest package="' + new + '"', m, count=1)
+
+          m = m.replace(orig + ".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION", new + ".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION")
+          m = m.replace(orig + ".permission", new + ".permission")
+
+          def fix_authorities(match):
+              val = match.group(2).replace(orig, new)
+              return match.group(1) + val + match.group(3)
+
+          m = re.sub(r'(android:authorities=")([^"]+)(")', fix_authorities, m)
+          mfile.write_text(m)
+
+          for p in (work / "res").rglob("*.xml"):
+              s = p.read_text(errors="ignore")
+              s2 = s
+              s2 = s2.replace(orig + ".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION", new + ".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION")
+              s2 = s2.replace(orig + ".fileprovider", new + ".fileprovider")
+              s2 = s2.replace(orig + ".provider", new + ".provider")
+              s2 = re.sub(r'(<string name="app_name">).*?(</string>)', r'\1Winner Director OCR\2', s2)
+              if s2 != s:
+                  p.write_text(s2)
+
+          poster = work / "assets/public/poster.html"
+          html = poster.read_text(errors="ignore")
+
+          marker = "/* DEVIL_DIRECTOR_OCR_V1 */"
+          if marker not in html:
+              patch = r'''
+          <style>
+          /* DEVIL_DIRECTOR_OCR_V1 */
+          #directorPanel{border:1px solid rgba(0,234,255,.45);background:linear-gradient(180deg,rgba(0,40,50,.72),rgba(0,0,0,.92));box-shadow:0 0 22px rgba(0,234,255,.18);margin:10px 0;padding:12px;border-radius:18px}
+          #directorPanel h3{margin:0 0 8px 0;color:#66f6ff}
+          #directorPanel textarea{height:170px;background:#03080a;border-color:#164b55;color:#dfffff;font-size:11px;text-align:left}
+          #directorPanel pre{max-height:260px;overflow:auto;background:#030303;border:1px solid #333;border-radius:14px;padding:10px;font-size:10px;color:#b8fff8;text-align:left;white-space:pre-wrap}
+          #directorPanel .directorRow{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}
+          #directorPanel button{background:#06343a;border-color:#0aa;color:#dfffff}
+          #directorPanel button.hot{background:#00eaff;color:#001014;border-color:#8fffff}
+          #directorPanel button.warn{background:#4b1b00;color:#ffd4a0;border-color:#ff7900}
+          </style>
+          <script>
+          (function(){
+            if(window.__DEVIL_DIRECTOR_OCR_V1__) return;
+            window.__DEVIL_DIRECTOR_OCR_V1__ = true;
+
+            function D$(id){ return document.getElementById(id); }
+            function num(v,d){ v=Number(v); return Number.isFinite(v)?v:d; }
+            function relSize(v,d){ v=Number(v); if(!Number.isFinite(v)) return d; return v>3 ? v/100 : v; }
+            function setInput(id,val){ const el=D$(id); if(el && val!==undefined && val!==null) el.value=val; }
+            function readJSONText(t){ try{return JSON.parse(t)}catch(e){ alert("JSON ผิด: "+e.message); return null; } }
+
+            const oldAutoGrid = autoGrid;
+            autoGrid = function(){
+              if(board && board.free && board.free.enabled){
+                const n = Math.max(1, items.length || 1);
+                const cols = Math.max(1, Math.min(8, Math.round(num(board.free.columns, 2))));
+                return {cols: cols, rows: Math.ceil(n / cols)};
+              }
+              return oldAutoGrid();
+            };
+
+            const oldSlotRect = slotRect;
+            slotRect = function(i){
+              if(!(board && board.free && board.free.enabled)) return oldSlotRect(i);
+
+              const br = boardRect();
+              const f = board.free || {};
+              const n = Math.max(1, items.length || 1);
+              const cols = Math.max(1, Math.min(8, Math.round(num(f.columns, 2))));
+              const rows = Math.ceil(n / cols);
+
+              const padX = br.w * num(f.padX, .035);
+              const padTop = br.h * num(f.padTop, .18);
+              const padBottom = br.h * num(f.padBottom, .045);
+              const gapX = br.w * num(f.gapX, .028);
+              const gapY = br.h * num(f.gapY, .016);
+
+              const aw = br.w - padX * 2;
+              const ah = br.h - padTop - padBottom;
+              const cellW = (aw - gapX * (cols - 1)) / cols;
+              const cellH = (ah - gapY * (rows - 1)) / rows;
+
+              const cw = f.cardW ? br.w * num(f.cardW, .42) : cellW * num(f.cardScaleX, .94);
+              const ch = f.cardH ? br.h * num(f.cardH, .075) : cellH * num(f.cardScaleY, .90);
+
+              const col = i % cols;
+              const row = Math.floor(i / cols);
+
+              return {
+                x: br.x + padX + col * (cellW + gapX) + (cellW - cw) / 2,
+                y: br.y + padTop + row * (cellH + gapY) + (cellH - ch) / 2,
+                w: cw,
+                h: ch
+              };
+            };
+
+            function boardLogObject(){
+              const br = boardRect();
+              const slots = (items || []).map((it,i)=>{
+                const r = slotRect(i);
+                return {
+                  index:i+1,
+                  rank:it.rank || i+1,
+                  name:it.name || "",
+                  phone:it.phone || "",
+                  slotPx:{x:Math.round(r.x),y:Math.round(r.y),w:Math.round(r.w),h:Math.round(r.h)},
+                  slot:{x:+(r.x/W).toFixed(4),y:+(r.y/H).toFixed(4),w:+(r.w/W).toFixed(4),h:+(r.h/H).toFixed(4)}
+                };
+              });
+              return {
+                version:"director-ocr-v1",
+                canvas:{w:W,h:H,ratio:currentRatio},
+                boardPx:{x:Math.round(br.x),y:Math.round(br.y),w:Math.round(br.w),h:Math.round(br.h)},
+                board:JSON.parse(JSON.stringify(board)),
+                style:JSON.parse(JSON.stringify(style)),
+                textStyle:JSON.parse(JSON.stringify(textStyle)),
+                title:D$("titleInput") ? D$("titleInput").value : "",
+                subtitle:D$("subTitleInput") ? D$("subTitleInput").value : "",
+                itemCount:(items||[]).length,
+                slots
+              };
+            }
+
+            function updateBoardLog(){
+              const pre = D$("boardLog");
+              if(pre) pre.textContent = JSON.stringify(boardLogObject(), null, 2);
+              return boardLogObject();
+            }
+
+            function applyDirector(d){
+              if(!d) return;
+              if(typeof d === "string") d = readJSONText(d);
+              if(!d) return;
+
+              if(d.ratio) setRatio(d.ratio);
+
+              if(d.layout && String(d.layout).indexOf("free") >= 0){
+                board.free = Object.assign({enabled:true,columns:2}, board.free || {});
+              }
+
+              if(d.board){
+                const b = d.board;
+                if(b.preset !== undefined) board.preset = b.preset;
+                ["x","y","w","h","titleX","titleY","subX","subY"].forEach(k=>{
+                  if(b[k] !== undefined) board[k] = num(b[k], board[k] || 0);
+                });
+                if(b.titleSize !== undefined) board.titleSize = relSize(b.titleSize, board.titleSize);
+                if(b.subSize !== undefined) board.subSize = relSize(b.subSize, board.subSize);
+
+                board.free = Object.assign({}, board.free || {}, b.free || {});
+                ["columns","gapX","gapY","padX","padTop","padBottom","cardW","cardH","cardScaleX","cardScaleY"].forEach(k=>{
+                  if(b[k] !== undefined){
+                    board.free = Object.assign({enabled:true}, board.free || {});
+                    board.free[k] = num(b[k], board.free[k]);
+                  }
+                });
+                if(b.free === false) board.free = {enabled:false};
+                if(b.columns !== undefined || b.cardW !== undefined || b.cardH !== undefined) board.free.enabled = true;
+              }
+
+              if(d.title){
+                if(d.title.text !== undefined) setInput("titleInput", d.title.text);
+                if(d.title.color !== undefined){ style.titleColor = d.title.color; setInput("titleColor", d.title.color); }
+                if(d.title.size !== undefined) board.titleSize = relSize(d.title.size, board.titleSize);
+                if(d.title.x !== undefined) board.titleX = num(d.title.x, .5) - .5;
+                if(d.title.y !== undefined) board.titleY = num(d.title.y, .122) - .122;
+                if(d.title.shadow !== undefined) style.titleShadow = !!d.title.shadow;
+                if(d.title.font !== undefined) style.titleFont = d.title.font;
+              }
+
+              if(d.subtitle || d.subTitle){
+                const s = d.subtitle || d.subTitle;
+                if(s.text !== undefined) setInput("subTitleInput", s.text);
+                if(s.color !== undefined){ style.subColor = s.color; setInput("subColor", s.color); }
+                if(s.size !== undefined) board.subSize = relSize(s.size, board.subSize);
+                if(s.x !== undefined) board.subX = num(s.x, .5) - .5;
+                if(s.y !== undefined) board.subY = num(s.y, .178) - .178;
+                if(s.shadow !== undefined) style.subShadow = !!s.shadow;
+                if(s.font !== undefined) style.subTitleFont = s.font;
+              }
+
+              if(d.card){
+                const c = d.card;
+                if(c.opacity !== undefined){ style.opacity = num(c.opacity, style.opacity); if(style.opacity>1) style.opacity/=100; }
+                if(c.boardFrame !== undefined) style.boardFrame = c.boardFrame;
+                if(c.cardStyle !== undefined) style.cardStyle = c.cardStyle;
+                if(c.palette !== undefined) style.cardPalette = c.palette;
+                if(c.shape !== undefined) style.cardShape = c.shape;
+                if(c.fill !== undefined) style.boardColorA = c.fill;
+                if(c.fill2 !== undefined) style.boardColorB = c.fill2;
+                if(c.stroke !== undefined){ style.boardStroke = c.stroke; setInput("boardStrokeColor", c.stroke); }
+                if(c.w !== undefined || c.h !== undefined){
+                  board.free = Object.assign({enabled:true}, board.free || {});
+                  if(c.w !== undefined) board.free.cardW = num(c.w, board.free.cardW);
+                  if(c.h !== undefined) board.free.cardH = num(c.h, board.free.cardH);
+                }
+              }
+
+              if(d.avatar){
+                if(d.avatar.scale !== undefined) style.avatarScale = num(d.avatar.scale, style.avatarScale);
+                if(d.avatar.size !== undefined) style.avatarScale = num(d.avatar.size, style.avatarScale);
+                if(d.avatar.frame !== undefined) style.avatarFrame = d.avatar.frame;
+                if(d.avatar.shadow !== undefined) style.customFrameShadow = num(d.avatar.shadow, style.customFrameShadow);
+              }
+
+              if(d.text){
+                const t = d.text;
+                if(t.rankSize !== undefined) textStyle.rank = relSize(t.rankSize, textStyle.rank);
+                if(t.nameSize !== undefined) textStyle.name = relSize(t.nameSize, textStyle.name);
+                if(t.phoneSize !== undefined) textStyle.phone = relSize(t.phoneSize, textStyle.phone);
+                if(t.timeSize !== undefined) textStyle.time = relSize(t.timeSize, textStyle.time);
+                if(t.autoFit !== undefined) textStyle.autoFit = !!t.autoFit;
+                if(t.rankColor !== undefined){ style.rankColor = t.rankColor; setInput("rankColor", t.rankColor); }
+                if(t.nameColor !== undefined) style.nameColor = t.nameColor;
+                if(t.phoneColor !== undefined) style.phoneColor = t.phoneColor;
+                if(t.font !== undefined) style.listFont = t.font;
+                if(t.layout !== undefined) style.textLayout = t.layout;
+              }
+
+              if(d.style && typeof d.style === "object"){
+                Object.assign(style, d.style);
+              }
+
+              if(Array.isArray(d.items)){
+                items = d.items.map((x,i)=>{
+                  const old = items[i] || {};
+                  const rank = x.rank || old.rank || i+1;
+                  return Object.assign({}, old, x, {
+                    rank,
+                    name: cleanBoardName(x.name !== undefined ? x.name : (old.name || "")),
+                    phone: x.phone !== undefined ? x.phone : (old.phone || ""),
+                    time: x.time !== undefined ? x.time : (old.time || "")
+                  });
+                });
+                syncInputsFromItems();
+              }
+
+              if(D$("rankSizeRange")) D$("rankSizeRange").value = Math.round(textStyle.rank*100);
+              if(D$("nameSizeRange")) D$("nameSizeRange").value = Math.round(textStyle.name*100);
+              if(D$("phoneSizeRange")) D$("phoneSizeRange").value = Math.round(textStyle.phone*100);
+              if(D$("timeSizeRange")) D$("timeSizeRange").value = Math.round(textStyle.time*100);
+
+              draw();
+              saveAutoProjectNow();
+              setTimeout(updateBoardLog, 80);
+            }
+
+            function defaultDirectorJSON(){
+              return JSON.stringify({
+                layout:"free_2_column",
+                ratio:"1:1",
+                title:{text:"รายชื่อผู้โชคดี",x:.5,y:.285,size:54,color:"#ff8a19",shadow:true,font:"impact"},
+                subtitle:{text:"DEVIL IS BACK 🔥",x:.5,y:.335,size:20,color:"#ffbd77",shadow:true},
+                board:{x:.12,y:.32,w:.76,h:.53,columns:2,gapX:.035,gapY:.02,padX:.03,padTop:.20,padBottom:.04,cardH:.075},
+                card:{opacity:.82,boardFrame:"none",cardStyle:"glow",palette:"dark",shape:"round",stroke:"#ff7900"},
+                avatar:{scale:.92,frame:"ring",shadow:.6},
+                text:{rankSize:32,nameSize:24,phoneSize:18,timeSize:13,rankColor:"#ff7900",nameColor:"white",phoneColor:"accent",font:"tahoma",autoFit:true}
+              }, null, 2);
+            }
+
+            function toggleCompact(){
+              const controls = document.querySelector(".controls");
+              if(!controls) return;
+              const panel = D$("directorPanel");
+              const on = !document.body.classList.contains("directorCompactOn");
+              document.body.classList.toggle("directorCompactOn", on);
+              Array.from(controls.children).forEach(el=>{
+                if(el === panel) return;
+                el.style.display = on ? "none" : "";
+              });
+              const btn = D$("compactUiBtn");
+              if(btn) btn.textContent = on ? "แสดง UI เดิม" : "ซ่อน UI เดิม";
+              localStorage.setItem("DEVIL_DIRECTOR_COMPACT", on ? "1" : "0");
+            }
+
+            function hideFloatingButtons(){
+              document.querySelectorAll("button").forEach(b=>{
+                if(b.closest("#directorPanel")) return;
+                const t = (b.textContent || "").trim().toLowerCase();
+                if(t === "gemini" || t.includes("gemini")) b.style.display = "none";
+              });
+            }
+
+            function buildDirectorPanel(){
+              const controls = document.querySelector(".controls");
+              if(!controls || D$("directorPanel")) return;
+              const box = document.createElement("div");
+              box.id = "directorPanel";
+              box.innerHTML = `
+                <h3>Board Director JSON / Log</h3>
+                <div class="small">สั่งจัดวางบอร์ดด้วย JSON จาก ChatGPT</div>
+                <textarea id="directorJson"></textarea>
+                <div class="directorRow">
+                  <button id="applyDirectorBtn" class="hot">Apply JSON</button>
+                  <button id="copyBoardLogBtn">Copy Board Log</button>
+                  <button id="refreshBoardLogBtn">Refresh Log</button>
+                  <button id="pasteCurrentBtn">ใส่ค่าปัจจุบัน</button>
+                  <button id="compactUiBtn" class="warn">ซ่อน UI เดิม</button>
+                  <button id="hideGeminiBtn" class="warn">ซ่อนปุ่มลอย</button>
+                  <button id="importCropBtn">นำเข้ารูปจากตัด</button>
+                  <button id="exportDirectorBtn" class="hot">Export PNG</button>
+                </div>
+                <div class="small">Board Log ให้ส่งกลับมาเวลาจะให้แก้ตำแหน่ง</div>
+                <pre id="boardLog"></pre>
+              `;
+              controls.insertBefore(box, controls.firstChild);
+              D$("directorJson").value = defaultDirectorJSON();
+
+              D$("applyDirectorBtn").onclick = ()=>applyDirector(D$("directorJson").value);
+              D$("refreshBoardLogBtn").onclick = ()=>updateBoardLog();
+              D$("pasteCurrentBtn").onclick = ()=>{ D$("directorJson").value = JSON.stringify(boardLogObject(), null, 2); };
+              D$("copyBoardLogBtn").onclick = async ()=>{
+                const txt = JSON.stringify(boardLogObject(), null, 2);
+                updateBoardLog();
+                try{ await navigator.clipboard.writeText(txt); alert("Copy Board Log แล้ว"); }
+                catch(e){ prompt("Copy Board Log", txt); }
+              };
+              D$("compactUiBtn").onclick = toggleCompact;
+              D$("hideGeminiBtn").onclick = hideFloatingButtons;
+              D$("importCropBtn").onclick = ()=>appendPendingItems();
+              D$("exportDirectorBtn").onclick = ()=>D$("exportBtn") && D$("exportBtn").click();
+
+              if(localStorage.getItem("DEVIL_DIRECTOR_COMPACT")==="1") setTimeout(toggleCompact, 100);
+              setTimeout(updateBoardLog, 150);
+            }
+
+            const oldDraw = draw;
+            draw = function(){
+              oldDraw();
+              setTimeout(updateBoardLog, 0);
+            };
+
+            window.DEVIL_APPLY_DIRECTOR = applyDirector;
+            window.DEVIL_BOARD_LOG = boardLogObject;
+            window.DEVIL_DIRECTOR_DEFAULT = defaultDirectorJSON;
+
+            if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", buildDirectorPanel);
+            else buildDirectorPanel();
+          })();
+          </script>
+          '''
+
+              if "</body>" in html:
+                  html = html.replace("</body>", patch + "\n</body>", 1)
+              else:
+                  html += "\n" + patch + "\n"
+
+          poster.write_text(html)
+
+          print("patched package:", new)
+          print("patched poster director:", poster)
+          PY
+
+      - name: Verify files
+        run: |
+          test -f work/lib/arm64-v8a/libppocrv5ncnn.so
+          test -f work/lib/arm64-v8a/libtesseract.so
+          test -f work/assets/tessdata/tha.traineddata
+          grep -n "DEVIL_DIRECTOR_OCR_V1" work/assets/public/poster.html
+          grep -n "package=" work/AndroidManifest.xml | head || true
+          echo "OK"
+
+      - name: Build APK
+        run: |
+          rm -rf unsigned signed
+          mkdir -p unsigned signed
+          java -jar apktool.jar b work -o unsigned/winner-director-ocr-debug.unsigned.apk
+          ls -lh unsigned/
+
+      - name: Sign APK
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+            --ks exact-director-debug.keystore \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out signed/winner-director-ocr-debug.apk \
+            unsigned/winner-director-ocr-debug.unsigned.apk
+
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging signed/winner-director-ocr-debug.apk | head -25
+          ls -lh signed/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: winner-director-ocr-debug
+          path: signed/winner-director-ocr-debug.apk
