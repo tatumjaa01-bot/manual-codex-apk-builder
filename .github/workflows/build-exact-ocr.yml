@@ -1,0 +1,125 @@
+name: Build Exact OCR APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build tools
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Download original APK from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p input
+          gh release download exact-ocr-base --repo "$GITHUB_REPOSITORY" --pattern "base.apk" -D input
+          ls -lh input/base.apk
+
+      - name: Download apktool
+        run: |
+          curl -L --fail -o apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v3.0.2/apktool_3.0.2.jar
+          java -jar apktool.jar --version
+
+      - name: Decode APK
+        run: |
+          rm -rf work
+          java -jar apktool.jar d -f input/base.apk -o work
+
+      - name: Patch package and label
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          orig = "com.devil.winnerstudio"
+          new = "com.manualcodex.winnerstudio.exactocr"
+          work = Path("work")
+          mfile = work / "AndroidManifest.xml"
+          m = mfile.read_text(errors="ignore")
+
+          # ขยาย .MainActivity เป็น full class เดิมก่อนเปลี่ยน package
+          m = re.sub(r'(android:name=")\.([^"]+)"', r'\1' + orig + r'.\2"', m)
+
+          if re.search(r'<manifest[^>]*\bpackage="[^"]+"', m):
+              m = re.sub(r'(<manifest[^>]*\bpackage=")[^"]+(")', r'\1' + new + r'\2', m, count=1)
+          else:
+              m = re.sub(r'<manifest\b', '<manifest package="' + new + '"', m, count=1)
+
+          # กัน provider/authorities ชนตัวจริง
+          m = m.replace(orig + ".fileprovider", new + ".fileprovider")
+          m = m.replace(orig + ".provider", new + ".provider")
+          mfile.write_text(m)
+
+          for p in (work / "res").glob("values*/strings.xml"):
+              s = p.read_text(errors="ignore")
+              s2 = re.sub(r'(<string name="app_name">).*?(</string>)', r'\1Winner Exact OCR\2', s)
+              if s2 != s:
+                  p.write_text(s2)
+
+          print("patched:", new)
+          PY
+
+      - name: Verify original OCR files
+        run: |
+          test -f work/lib/arm64-v8a/libppocrv5ncnn.so
+          test -f work/lib/arm64-v8a/libtesseract.so
+          test -f work/assets/tessdata/tha.traineddata
+          test -f work/assets/PP_OCRv5_mobile_det.ncnn.bin
+          test -f work/assets/PP_OCRv5_mobile_rec.ncnn.bin
+          grep -R "OcrPlugin" work/assets/capacitor.plugins.json work/assets/public 2>/dev/null | head -20 || true
+          echo "OCR files OK"
+
+      - name: Build APK
+        run: |
+          rm -rf unsigned signed
+          mkdir -p unsigned signed
+          java -jar apktool.jar b work -o unsigned/winner-exact-ocr-debug.unsigned.apk
+          ls -lh unsigned/
+
+      - name: Sign APK
+        run: |
+          keytool -genkeypair \
+            -keystore debug.keystore \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+            --ks debug.keystore \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out signed/winner-exact-ocr-debug.apk \
+            unsigned/winner-exact-ocr-debug.unsigned.apk
+
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging signed/winner-exact-ocr-debug.apk | head -20
+          ls -lh signed/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: winner-exact-ocr-debug
+          path: signed/winner-exact-ocr-debug.apk
