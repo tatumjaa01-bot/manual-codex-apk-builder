@@ -8,7 +8,7 @@
 
 
 <application
-        android:label="Winner Studio Clone"
+        android:label="my-test-app"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:usesCleartextTraffic="true"

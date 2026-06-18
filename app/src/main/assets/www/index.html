@@ -2,25 +2,47 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DEVIL Winner Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🔥 My Test App</title>
 <style>
-body{margin:0;background:#050505;color:#fff;font-family:system-ui;padding:18px}
-h1{color:#ff7a00;font-size:30px;margin:10px 0}
-.card{background:#111;border:1px solid #333;border-radius:20px;padding:18px;margin:14px 0}
-a{display:block;text-decoration:none;text-align:center;background:#1d1d1d;color:#fff;border:1px solid #333;border-radius:18px;padding:22px;margin:14px 0;font-size:24px;font-weight:1000}
-a.main{background:linear-gradient(135deg,#ff7a00,#ffd08a);color:#1b0900;border:0}
-small{color:#aaa}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;color:#ffffff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px 16px;background:#050505;}
+.wrap{width:min(720px,100%);margin:0 auto}
+.card{background:#15161d;border:1px solid rgba(255,255,255,.12);border-radius:30px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.layout-poster .card{text-align:center}
+.layout-gallery .card{padding:18px}
+.logo{width:92px;height:92px;object-fit:cover;border-radius:24px;margin-bottom:14px}
+.hero{width:100%;max-height:460px;object-fit:cover;border-radius:24px;border:1px solid rgba(255,255,255,.14);margin-bottom:20px;background:#000}
+h1{margin:0 0 16px;font-size:44px;line-height:1.08;color:#55ff00}
+.subtitle{font-size:21px;line-height:1.55;opacity:.92}
+.badge{display:inline-block;background:#55ff00;color:#050505;padding:12px 22px;border-radius:999px;font-weight:900;margin:6px 0 20px}
+button,.btnLink{display:inline-block;text-decoration:none;border:0;border-radius:20px;padding:16px 24px;font-size:20px;font-weight:900;background:#ffd66b;color:#050505;margin:8px 8px 0 0}
+#log,.section{margin-top:20px;padding:18px;border-radius:20px;background:#050505;border:1px solid rgba(255,255,255,.16)}
+.section h3{margin:0 0 8px;color:#55ff00;font-size:24px}
+.section p{margin:0;font-size:19px;line-height:1.5}
+.sectionImg{width:100%;border-radius:18px;margin-bottom:12px}
+.gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:20px}
+.gallery img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:18px;border:1px solid rgba(255,255,255,.14)}
+.footer{margin-top:22px;opacity:.7;font-size:15px;text-align:center}
+
 </style>
-<script src="capacitor_compat_bridge.js"></script>
 </head>
-<body>
-<h1>DEVIL Winner Studio</h1>
-<small>เหลือ 2 ฟังก์ชัน: บอร์ดประกาศรายชื่อ + ตัดรูปวงกลม</small>
-<div class="card">
-<a class="main" href="poster.html">บอร์ดประกาศรายชื่อ</a>
-<a href="crop.html">ตัดรูปวงกลม</a>
-</div>
-<script src="gemini.js"></script>
+<body class="layout-landing">
+<div class="wrap"><div class="card">
+
+
+<h1>🔥 My Test App</h1>
+<div class="badge">Manual Codex Lite</div>
+<p class="subtitle">สร้างจาก Command Center</p>
+
+
+<div style="margin-top:18px"><button onclick="tick()">กดทดสอบ</button></div>
+<div id="log">สถานะ: พร้อมทดสอบ</div>
+
+</div></div>
+<script>
+let n=0;
+function tick(){n++;document.getElementById("log").textContent="สถานะ: ปุ่มทำงานแล้ว ✅ จำนวนครั้ง: "+n+" เวลา: "+new Date().toLocaleString("th-TH");}
+</script>
 </body>
 </html>
